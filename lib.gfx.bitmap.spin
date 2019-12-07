@@ -265,6 +265,18 @@ PUB Position(col, row)
     _col := col
     _row := row
 
+PUB RGB565_R5 (rgb565)
+' Return 5-bit red component of 16-bit RGB color
+    return (((rgb565 & $F800) >> 11) * 527 + 23 ) >> 6
+
+PUB RGB565_G6 (rgb565)
+' Return 6-bit green component of 16-bit RGB color
+    return (((rgb565 & $7E0) >> 5)  * 259 + 33 ) >> 6
+
+PUB RGB565_B5 (rgb565)
+' Return 5-bit blue component of 16-bit RGB color
+    return ((rgb565 & $1F) * 527 + 23 ) >> 6
+
 PUB Str (string_addr) | i
 ' Write string at string_addr to the display @ row and column.
 '   NOTE: Wraps to the left at end of line and to the top-left at end of display
