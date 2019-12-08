@@ -277,6 +277,15 @@ PUB RGB565_B5 (rgb565)
 ' Return 5-bit blue component of 16-bit RGB color
     return ((rgb565 & $1F) * 527 + 23 ) >> 6
 
+PUB Scale (sx, sy, ex, ey, offsx, offsy, size) | x, y, dx, dy, in
+' Scale a region of the display up by size
+    repeat y from sy to ey
+        repeat x from sx to ex
+            in := Point(x, y)
+            dx := offsx + (x*size)-(sx*size)
+            dy := offsy + (y*size)-(sy*size)
+            Box(dx, dy, dx + size, dy + size, in, TRUE)
+
 PUB Str (string_addr) | i
 ' Write string at string_addr to the display @ row and column.
 '   NOTE: Wraps to the left at end of line and to the top-left at end of display

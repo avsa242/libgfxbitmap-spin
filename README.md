@@ -25,10 +25,10 @@ This is a P8X32A/Propeller object for generic bitmap-oriented drawing routines.
 
 ## TODO
 
-- [ ] Add fast V/H line decision-making to Line primitive
+- [x] Add fast V/H line decision-making to Line primitive
 - [ ] Add beveled/rounded option to Box primitive
 - [ ] Text rendering for other color depths
 - [ ] Get/Put (buffer copy)
 - [ ] Rotate bitmap
-- [ ] Zoom bitmap
+- [x] Scale bitmap
 
