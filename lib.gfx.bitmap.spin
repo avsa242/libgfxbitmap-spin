@@ -5,7 +5,7 @@
     Description: Library of generic bitmap-oriented graphics rendering routines
     Copyright (c) 2019
     Started May 19, 2019
-    Updated Dec 3, 2019
+    Updated Dec 8, 2019
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -57,13 +57,23 @@ PUB ClearAll
     Clear
     Update
 
-PUB Char (ch) | glyph_col
+PUB Char (ch) | glyph_col, glyph_row, glyph_data, x, y
 ' Write a character to the display
     case MAX_COLOR
         1:
             repeat glyph_col from 0 to _font_height-1 
                 byte[_draw_buffer][(_row * _disp_width) + (_col * _font_width) + glyph_col] := byte[_font_addr + 8 * ch + glyph_col]
-        '65535: XXX To be implemented
+
+        65535:
+            repeat glyph_col from 0 to _font_width-1
+                repeat glyph_row from 0 to _font_height-1
+                    glyph_data := byte[_font_addr][{8 *}ch << 3 + glyph_col]
+                    x := (_col * _font_width) + glyph_col
+                    y := (_row * _font_height) + glyph_row
+                    if glyph_data & (1 << (glyph_row))
+                        Plot(x, y, _fgcolor)
+                    else
+                        Plot(x, y, _bgcolor)
 
 PUB Circle(x0, y0, radius, color) | x, y, err, cdx, cdy
 ' Draw a circle at x0, y0
@@ -243,7 +253,13 @@ PUB Plot (x, y, color)
                 OTHER:
                     return
         65535:
-            word[_draw_buffer][x + (y * _disp_width)] := color
+'            color.byte[3] := color.byte[0]
+'            color.byte[0] := color.byte[1]
+'            color.byte[1] := color.byte[3]
+'            color.byte[3] := 0
+'            word[_draw_buffer][x + (y * _disp_width)] := color
+            word[_draw_buffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
+            'TODO: Compare cost of both of these methods
 
 PUB Point (x, y)
 ' Get color of pixel at x, y
