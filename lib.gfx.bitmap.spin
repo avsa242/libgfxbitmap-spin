@@ -284,7 +284,7 @@ PUB Plot (x, y, color)
                 1:
                     byte[_draw_buffer][x + (y>>3) * _disp_width] |= (1 << (y&7))
                 0:
-                    byte[_draw_buffer][x + (y>>3) * _disp_width] &= (1 << (y&7))
+                    byte[_draw_buffer][x + (y>>3) * _disp_width] &= !(1 << (y&7))
                 -1:
                     byte[_draw_buffer][x + (y>>3) * _disp_width] ^= (1 << (y&7))
                 OTHER:
