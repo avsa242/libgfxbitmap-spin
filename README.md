@@ -1,7 +1,7 @@
 # libgfxbitmap-spin
 -------------------
 
-This is a P8X32A/Propeller object for generic bitmap-oriented drawing routines.
+This is a P8X32A/Propeller, P2X8C4M64P/Propeller 2 library for generic bitmap-oriented drawing routines.
 
 ## Salient Features
 
@@ -9,6 +9,7 @@ This is a P8X32A/Propeller object for generic bitmap-oriented drawing routines.
 * Text rendering (supported by 1bpp, 16bpp displays)
 * Copy bitmap to display buffer, with optional offset
 * Copy, cut, scale region
+* Supported displays: SSD1306/1309, SSD1331, IL3820 (preliminary),Neopixels (preliminary; WS2811, WS2812, WS2812B, WS2813, SK6812 RGB and RGBW, TM1803), HT16K33 (preliminary; Adafruit-variant 8x8 matrix only)
 
 ## Requirements
 
@@ -17,13 +18,14 @@ This is a P8X32A/Propeller object for generic bitmap-oriented drawing routines.
 
 ## Compiler Compatibility
 
+* P1/SPIN1: ~~Propeller Tool~~ Unsupported - requires a compiler with preprocessor support
 * P1/SPIN1: OpenSpin (tested with 1.00.81)
-* P2/SPIN2: FastSpin (tested with 4.0.3)
+* P2/SPIN2: FastSpin (tested with 4.1.0-beta)
 
 ## Limitations
 
 * Very early in development - may malfunction, or outright fail to build
-* Text rendering on 16bpp displays is s l o w; needs optimization
+* Text rendering is s l o w; needs optimization
 
 ## TODO
 
