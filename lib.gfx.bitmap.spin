@@ -1,11 +1,11 @@
 {
     --------------------------------------------
-    Filename: library.gfx.bitmap.spin2
+    Filename: library.gfx.bitmap.spin
     Author: Jesse Burt
     Description: Library of generic bitmap-oriented graphics rendering routines
-    Copyright (c) 2019
+    Copyright (c) 2020
     Started May 19, 2019
-    Updated Dec 28, 2019
+    Updated Feb 8, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -263,7 +263,7 @@ PUB Point (x, y)
 #elseifdef HT16K33-ADAFRUIT
     x := x + 7
     x := x // 8
-    result := byte[_draw_buffer][y + (x >> 3) * _disp_width]' [x + (y >> 3) * _disp_width] >> (y & 7)
+    result := byte[_draw_buffer][y + (x >> 3) * _disp_width]
 #else
 #warning "No supported display types defined!"
 #endif
@@ -324,10 +324,10 @@ PUB Str (string_addr) | i
 '   NOTE: Wraps to the left at end of line and to the top-left at end of display
     repeat i from 0 to strsize(string_addr)-1
         Char(byte[string_addr][i])
-        _col += _font_width
-        if _col > _disp_xmax
-            _col := 0
-            _row += _font_height
+        _col += _font_width     'XXX TODO: Move position handling to Char? Then the terminal lib
+        if _col > _disp_xmax    '   could be #included and used in place of this, and also provide
+            _col := 0           '   Bin, Dec, Hex, etc...
+            _row += _font_height'   Not that Char needs to be any slower, than it is, though
             if _row > _disp_ymax
                 _row := 0
 
