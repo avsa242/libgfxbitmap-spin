@@ -49,13 +49,15 @@ PUB Box(x0, y0, x1, y1, color, filled=0) | x, y
 
 PUB Clear
 ' Clear the display buffer
-    case MAX_COLOR
-        -1:
-            bytefill(_draw_buffer, $FF, _buff_sz)
-        1:
-            bytefill(_draw_buffer, $00, _buff_sz)
-        65535:
-            wordfill(_draw_buffer, $0000, _buff_sz/2)
+#ifdef IL3820
+    bytefill(_draw_buffer, _bgcolor, _buff_sz)
+#elseifdef SSD130X
+    bytefill(_draw_buffer, _bgcolor, _buff_sz)
+#elseifdef SSD1331
+    wordfill(_draw_buffer, _bgcolor, _buff_sz/2)
+#elseifdef NEOPIXEL
+    longfill(_draw_buffer, _bgcolor, _buff_sz/4)
+#endif
 
 PUB ClearAll
 
@@ -193,52 +195,60 @@ PUB Line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
 
 PUB Plot (x, y, color)
 ' Plot pixel at x, y, color c
-    x := 0 #> x <# _disp_xmax
-    y := 0 #> y <# _disp_ymax
+'    x := 0 #> x <# _disp_xmax  '127
+'    y := 0 #> y <# _disp_ymax
 
-    case MAX_COLOR
-        -1:
-            case color
-                1:
-                    byte[_draw_buffer][(x + y * _disp_width) >> 3] |= $80 >> (x & 7)
-                0:
-                    byte[_draw_buffer][(x + y * _disp_width) >> 3] &= !($80 >> (x & 7))
-                -1:
-                    byte[_draw_buffer][(x + y * _disp_width) >> 3] ^= $80 >> (x & 7)
-                OTHER:
-                    return
-
+'    x := ||x <# _disp_xmax     '130
+'    y := ||y <# _disp_ymax
+    if x => 0 and x =< _disp_xmax and y => 0 and y =< _disp_ymax   '185
+    else
+        return
+#ifdef IL3820
+    case color
         1:
-            case color
-                1:
-                    byte[_draw_buffer][x + (y>>3) * _disp_width] |= (1 << (y&7))
-                0:
-                    byte[_draw_buffer][x + (y>>3) * _disp_width] &= !(1 << (y&7))
-                -1:
-                    byte[_draw_buffer][x + (y>>3) * _disp_width] ^= (1 << (y&7))
-                OTHER:
-                    return
-        65535:
-'            color.byte[3] := color.byte[0]
-'            color.byte[0] := color.byte[1]
-'            color.byte[1] := color.byte[3]
-'            color.byte[3] := 0
-'            word[_draw_buffer][x + (y * _disp_width)] := color
-            word[_draw_buffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
-            'TODO: Compare cost of both of these methods
+            byte[_draw_buffer][(x + y * _disp_width) >> 3] |= $80 >> (x & 7)
+        0:
+            byte[_draw_buffer][(x + y * _disp_width) >> 3] &= !($80 >> (x & 7))
+        -1:
+            byte[_draw_buffer][(x + y * _disp_width) >> 3] ^= $80 >> (x & 7)
+        OTHER:
+            return
+#elseifdef SSD130X
+    case color
+        1:
+            byte[_draw_buffer][x + (y>>3) * _disp_width] |= (1 << (y&7))
+        0:
+            byte[_draw_buffer][x + (y>>3) * _disp_width] &= !(1 << (y&7))
+        -1:
+            byte[_draw_buffer][x + (y>>3) * _disp_width] ^= (1 << (y&7))
+        OTHER:
+            return
+#elseifdef SSD1331
+'    color.byte[3] := color.byte[0]
+'    color.byte[0] := color.byte[1]
+'    color.byte[1] := color.byte[3]
+'    color.byte[3] := 0
+'    word[_draw_buffer][x + (y * _disp_width)] := color
+    word[_draw_buffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
+' ^TODO: Compare cost of both of these methods^
+#elseifdef NEOPIXEL
+    long[_draw_buffer][x + (y * _disp_width)] := color
+#endif
 
 PUB Point (x, y)
 ' Get color of pixel at x, y
     x := 0 #> x <# _disp_xmax
     y := 0 #> y <# _disp_ymax
 
-    case MAX_COLOR
-        -1:
-            result := byte[_draw_buffer][(x + y * _disp_width) >> 3]
-        1:                                                                                                       
-            result := byte[_draw_buffer][x + (y>>3) * _disp_width] >> (y & 7)
-        65535:
-            result := word[_draw_buffer][x + (y * _disp_width)]
+#ifdef IL3820
+    result := byte[_draw_buffer][(x + y * _disp_width) >> 3]
+#elseifdef SSD130X
+    result := byte[_draw_buffer][x + (y>>3) * _disp_width] >> (y & 7)
+#elseifdef SSD1331
+    result := word[_draw_buffer][x + (y * _disp_width)]
+#elseifdef NEOPIXEL
+    result := long[_draw_buffer][x + (y * _disp_width)]
+#endif
 
 PUB Position(col, row)
 ' Set text draw position, in character-cell col and row
