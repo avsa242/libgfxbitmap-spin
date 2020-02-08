@@ -102,6 +102,8 @@ PUB Clear
     wordfill(_draw_buffer, _bgcolor, _buff_sz/2)
 #elseifdef NEOPIXEL
     longfill(_draw_buffer, _bgcolor, _buff_sz/4)
+#elseifdef HT16K33-ADAFRUIT
+    bytefill(_draw_buffer, _bgcolor, _buff_sz)
 #endif
 
 PUB ClearAll
@@ -193,12 +195,8 @@ PUB Line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
 
 PUB Plot (x, y, color)
 ' Plot pixel at x, y, color c
-'    x := 0 #> x <# _disp_xmax  '127
-'    y := 0 #> y <# _disp_ymax
-
-'    x := ||x <# _disp_xmax     '130
-'    y := ||y <# _disp_ymax
-    if x => 0 and x =< _disp_xmax and y => 0 and y =< _disp_ymax   '185
+    if x => 0 and x =< _disp_xmax and y => 0 and y =< _disp_ymax
+    ' Within bounds; continue on
     else
         return
 #ifdef IL3820
@@ -231,6 +229,22 @@ PUB Plot (x, y, color)
 ' ^TODO: Compare cost of both of these methods^
 #elseifdef NEOPIXEL
     long[_draw_buffer][x + (y * _disp_width)] := color
+#elseifdef HT16K33-ADAFRUIT
+    x := x + 7
+    x := x // 8
+
+    case color
+        1:
+            byte[_draw_buffer][y] |= 1 << x
+        0:
+            byte[_draw_buffer][y] &= !(1 << x)
+        -1:
+            byte[_draw_buffer][y] ^= 1 << x
+        OTHER:
+            return
+
+#else
+#warning "No supported display types defined!"
 #endif
 
 PUB Point (x, y)
@@ -246,6 +260,12 @@ PUB Point (x, y)
     result := word[_draw_buffer][x + (y * _disp_width)]
 #elseifdef NEOPIXEL
     result := long[_draw_buffer][x + (y * _disp_width)]
+#elseifdef HT16K33-ADAFRUIT
+    x := x + 7
+    x := x // 8
+    result := byte[_draw_buffer][y + (x >> 3) * _disp_width]' [x + (y >> 3) * _disp_width] >> (y & 7)
+#else
+#warning "No supported display types defined!"
 #endif
 
 PUB Position(col, row)
