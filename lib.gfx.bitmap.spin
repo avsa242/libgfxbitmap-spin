@@ -337,6 +337,14 @@ PUB Str (string_addr) | i
             if _row > _disp_ymax
                 _row := 0
 
+PUB TextCols
+' Returns number of displayable text columns, based on set display width and set font width
+    return _disp_width / _font_width
+
+PUB TextRows
+' Returns number of displayable text rows, based on set display height and set font height
+    return _disp_height / _font_height
+
 DAT
 {
     --------------------------------------------------------------------------------------------------------

@@ -9,7 +9,8 @@ This is a P8X32A/Propeller, P2X8C4M64P/Propeller 2 library for generic bitmap-or
 * Text rendering (supported by 1bpp, 16bpp displays)
 * Copy bitmap to display buffer, with optional offset
 * Copy, cut, scale region
-* Supported displays: SSD1306/1309, SSD1331, IL3820 (preliminary),Neopixels (preliminary; WS2811, WS2812, WS2812B, WS2813, SK6812 RGB and RGBW, TM1803), HT16K33 (preliminary; Adafruit-variant 8x8 matrix only)
+* Supported displays: SSD1306/1309, SSD1331
+* Preliminary support: IL3820, Neopixels (WS2811, WS2812, WS2812B, WS2813, SK6812 RGB and RGBW, TM1803), HT16K33 (Adafruit-variant 8x8 matrix only), ST7735
 
 ## Requirements
 
@@ -31,6 +32,8 @@ This is a P8X32A/Propeller, P2X8C4M64P/Propeller 2 library for generic bitmap-or
 
 - [x] Add fast V/H line decision-making to Line primitive (WIP: need performance comparison)
 - [ ] Add beveled/rounded option to Box primitive
+- [ ] Add tri (or poly) primitive(s)
+- [ ] Add fill option for other primitives
 - [x] Text rendering for other color depths
 - [x] Get/Put (buffer copy)
 - [ ] Rotate bitmap
