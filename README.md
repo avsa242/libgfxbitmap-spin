@@ -10,7 +10,7 @@ This is a P8X32A/Propeller, P2X8C4M64P/Propeller 2 library for generic bitmap-or
 * Copy bitmap to display buffer, with optional offset
 * Copy, cut, scale region
 * Supported displays: SSD1306/1309, SSD1331
-* Preliminary support: IL3820, Neopixels (WS2811, WS2812, WS2812B, WS2813, SK6812 RGB and RGBW, TM1803), HT16K33 (Adafruit-variant 8x8 matrix only), ST7735
+* Preliminary support: IL3820, Neopixels (WS2811, WS2812, WS2812B, WS2813, SK6812 RGB and RGBW, TM1803), HT16K33 (Adafruit-variant 8x8 matrix only), ST7735, SSD1351
 
 ## Requirements
 

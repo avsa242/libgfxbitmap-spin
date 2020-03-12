@@ -106,6 +106,9 @@ PUB Clear
     bytefill(_draw_buffer, _bgcolor, _buff_sz)
 #elseifdef ST7735
     wordfill(_draw_buffer, _bgcolor, _buff_sz/2)
+#elseifdef SSD1351
+    wordfill(_draw_buffer, _bgcolor, _buff_sz/2)
+
 #endif
 
 PUB ClearAll
@@ -247,6 +250,8 @@ PUB Plot (x, y, color)
 
 #elseifdef ST7735
     word[_draw_buffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
+#elseifdef SSD1351
+    word[_draw_buffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
 #else
 #warning "No supported display types defined!"
 #endif
@@ -269,6 +274,8 @@ PUB Point (x, y)
     x := x // 8
     result := byte[_draw_buffer][y + (x >> 3) * _disp_width]
 #elseifdef ST7735
+    result := word[_draw_buffer][x + (y * _disp_width)]
+#elseifdef SSD1351
     result := word[_draw_buffer][x + (y * _disp_width)]
 #else
 #warning "No supported display types defined!"
