@@ -1,7 +1,7 @@
 {
     --------------------------------------------
-    Filename: 
-    Description: 
+    Filename: GFX-Benchmark.spin
+    Description: Benchmark utility for bitmap graphics library
     Author: Jesse Burt
     Copyright (c) 2020
     Created: Mar 26, 2020
@@ -9,20 +9,24 @@
     See end of file for terms of use.
     --------------------------------------------
 }
-#define SSD130X
 
 CON
 
     _clkmode    = cfg#_clkmode
     _xinfreq    = cfg#_xinfreq
 
-    BUFFSZ      = (FB_WIDTH * FB_HEIGHT) / 8
-    XMAX        = FB_WIDTH-1
-    YMAX        = FB_HEIGHT-1
+' Uncomment one display type #include line below:
+#include "test.con.ssd130x.spin"
+'#include "test.con.ssd1331.spin"
+'#include "test.con.ssd1351.spin"
+'#include "test.con.st7735.spin"
+'#include "test.con.il3820.spin"
+'#include "test.con.ht16k33-adafruit.spin"
+'#include "test.con.neopixel.spin"
 
-' User-modifiable constants:
-    FB_WIDTH    = 128
-    FB_HEIGHT   = 32
+' Optionally modify framebuffer width and height
+    FB_WIDTH    = DEF_FB_WIDTH
+    FB_HEIGHT   = DEF_FB_HEIGHT
 
     SER_RX      = 31
     SER_TX      = 30
