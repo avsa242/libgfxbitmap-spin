@@ -200,10 +200,9 @@ PUB Line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
 
 PUB Plot (x, y, color)
 ' Plot pixel at x, y, color c
-    if x => 0 and x =< _disp_xmax and y => 0 and y =< _disp_ymax
-    ' Within bounds; continue on
-    else
-        return
+    x := 0 #> x <# _disp_xmax
+    y := 0 #> y <# _disp_ymax
+
 #ifdef IL3820
     case color
         1:
@@ -225,13 +224,7 @@ PUB Plot (x, y, color)
         OTHER:
             return
 #elseifdef SSD1331
-'    color.byte[3] := color.byte[0]
-'    color.byte[0] := color.byte[1]
-'    color.byte[1] := color.byte[3]
-'    color.byte[3] := 0
-'    word[_draw_buffer][x + (y * _disp_width)] := color
     word[_draw_buffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
-' ^TODO: Compare cost of both of these methods^
 #elseifdef NEOPIXEL
     long[_draw_buffer][x + (y * _disp_width)] := color
 #elseifdef HT16K33-ADAFRUIT
