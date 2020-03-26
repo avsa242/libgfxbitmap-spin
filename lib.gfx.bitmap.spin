@@ -56,7 +56,7 @@ PUB Char (ch) | glyph_col, glyph_row, glyph_data, x, y
         repeat glyph_row from 0 to _font_height-1
             glyph_data := byte[_font_addr][ch << 3 + glyph_col]
             y := _row + glyph_row
-            if glyph_data & (1 << (glyph_row))
+            if glyph_data & |< glyph_row
                 Plot(x, y, _fgcolor)
             else
                 Plot(x, y, _bgcolor)
