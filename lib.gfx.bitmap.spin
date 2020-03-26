@@ -216,11 +216,11 @@ PUB Plot (x, y, color)
 #elseifdef SSD130X
     case color
         1:
-            byte[_draw_buffer][x + (y>>3) * _disp_width] |= (1 << (y&7))
+            byte[_draw_buffer][x + (y>>3) * _disp_width] |= (|< (y&7))
         0:
-            byte[_draw_buffer][x + (y>>3) * _disp_width] &= !(1 << (y&7))
+            byte[_draw_buffer][x + (y>>3) * _disp_width] &= !(|< (y&7))
         -1:
-            byte[_draw_buffer][x + (y>>3) * _disp_width] ^= (1 << (y&7))
+            byte[_draw_buffer][x + (y>>3) * _disp_width] ^= (|< (y&7))
         OTHER:
             return
 #elseifdef SSD1331
@@ -233,11 +233,11 @@ PUB Plot (x, y, color)
 
     case color
         1:
-            byte[_draw_buffer][y] |= 1 << x
+            byte[_draw_buffer][y] |= |< x
         0:
-            byte[_draw_buffer][y] &= !(1 << x)
+            byte[_draw_buffer][y] &= !(|< x)
         -1:
-            byte[_draw_buffer][y] ^= 1 << x
+            byte[_draw_buffer][y] ^= |< x
         OTHER:
             return
 
