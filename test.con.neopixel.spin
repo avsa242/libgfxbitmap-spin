@@ -5,4 +5,4 @@
     DEF_FB_HEIGHT   = 1
     XMAX            = FB_WIDTH-1
     YMAX            = FB_HEIGHT-1
-
+    MAX_COLOR       = $FF_FF_FF_FF

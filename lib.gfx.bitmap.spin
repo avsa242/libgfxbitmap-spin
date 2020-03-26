@@ -255,21 +255,21 @@ PUB Point (x, y)
     y := 0 #> y <# _disp_ymax
 
 #ifdef IL3820
-    result := byte[_draw_buffer][(x + y * _disp_width) >> 3]
+    return byte[_draw_buffer][(x + y * _disp_width) >> 3]
 #elseifdef SSD130X
-    result := byte[_draw_buffer][x + (y>>3) * _disp_width] >> (y & 7)
+    return byte[_draw_buffer][x + (y>>3) * _disp_width] >> (y & 7)
 #elseifdef SSD1331
-    result := word[_draw_buffer][x + (y * _disp_width)]
+    return word[_draw_buffer][x + (y * _disp_width)]
 #elseifdef NEOPIXEL
-    result := long[_draw_buffer][x + (y * _disp_width)]
+    return long[_draw_buffer][x + (y * _disp_width)]
 #elseifdef HT16K33-ADAFRUIT
     x := x + 7
     x := x // 8
-    result := byte[_draw_buffer][y + (x >> 3) * _disp_width]
+    return byte[_draw_buffer][y + (x >> 3) * _disp_width]
 #elseifdef ST7735
-    result := word[_draw_buffer][x + (y * _disp_width)]
+    return word[_draw_buffer][x + (y * _disp_width)]
 #elseifdef SSD1351
-    result := word[_draw_buffer][x + (y * _disp_width)]
+    return word[_draw_buffer][x + (y * _disp_width)]
 #else
 #warning "No supported display types defined!"
 #endif
