@@ -84,6 +84,8 @@ PUB TestBox(testtime) | iteration
 
 PUB TestChar(testtime) | iteration
 
+    BGColor(0)
+    FGColor(MAX_COLOR)
     ser.str(string("TestChar - "))
     _timer_set := testtime
     iteration := 0
