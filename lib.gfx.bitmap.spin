@@ -95,20 +95,19 @@ PUB Circle(x0, y0, radius, color) | x, y, err, cdx, cdy
 PUB Clear
 ' Clear the display buffer
 #ifdef IL3820
-    bytefill(_draw_buffer, _bgcolor, _buff_sz)
+    longfill(_draw_buffer, _bgcolor, _buff_sz/4)
 #elseifdef SSD130X
-    bytefill(_draw_buffer, _bgcolor, _buff_sz)
+    longfill(_draw_buffer, _bgcolor, _buff_sz/4)
 #elseifdef SSD1331
-    wordfill(_draw_buffer, _bgcolor, _buff_sz/2)
+    longfill(_draw_buffer, _bgcolor, _buff_sz/4)
 #elseifdef NEOPIXEL
     longfill(_draw_buffer, _bgcolor, _buff_sz/4)
 #elseifdef HT16K33-ADAFRUIT
-    bytefill(_draw_buffer, _bgcolor, _buff_sz)
+    longfill(_draw_buffer, _bgcolor, _buff_sz/4)
 #elseifdef ST7735
-    wordfill(_draw_buffer, _bgcolor, _buff_sz/2)
+    longfill(_draw_buffer, _bgcolor, _buff_sz/4)
 #elseifdef SSD1351
-    wordfill(_draw_buffer, _bgcolor, _buff_sz/2)
-
+    longfill(_draw_buffer, _bgcolor, _buff_sz/4)
 #endif
 
 PUB ClearAll
