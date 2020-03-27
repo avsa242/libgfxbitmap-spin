@@ -15,16 +15,7 @@ CON
     _clkmode    = cfg#_clkmode
     _xinfreq    = cfg#_xinfreq
 
-' Uncomment one display type #include line below:
-#include "test.con.ssd130x.spin"
-'#include "test.con.ssd1331.spin"
-'#include "test.con.ssd1351.spin"
-'#include "test.con.st7735.spin"
-'#include "test.con.il3820.spin"
-'#include "test.con.ht16k33-adafruit.spin"
-'#include "test.con.neopixel.spin"
-
-' Optionally modify framebuffer width and height
+' Optionally modify framebuffer width and height (some displays are sold with multiple resolution variants)
     FB_WIDTH    = DEF_FB_WIDTH
     FB_HEIGHT   = DEF_FB_HEIGHT
 
@@ -33,6 +24,15 @@ CON
     SER_BAUD    = 115_200
 
     LED         = cfg#LED1
+
+' Uncomment one display type #include line below:
+#include "test.con.ssd130x.spin"
+'#include "test.con.ssd1331.spin"
+'#include "test.con.ssd1351.spin"
+'#include "test.con.st7735.spin"
+'#include "test.con.il3820.spin"
+'#include "test.con.ht16k33-adafruit.spin"
+'#include "test.con.neopixel.spin"
 
 OBJ
 
@@ -54,6 +54,10 @@ VAR
 PUB Main | r, ttime
 
     Setup
+
+    ser.str(string("Testing driver "))
+    ser.str(@drivername)
+    ser.newline
 
     TestBox (5000)
     TestChar (5000)
