@@ -59,9 +59,11 @@ PUB Main | r, ttime
     ser.str(@drivername)
     ser.newline
 
+    TestBitmap (5000)
     TestBox (5000)
     TestChar (5000)
     TestCircle (5000)
+    TestClear (5000)
     TestCopy (5000)
     TestCut (5000)
     TestDiagLineMax (5000)
@@ -72,6 +74,19 @@ PUB Main | r, ttime
     TestStraightVLineMax (5000)
 
     FlashLED(LED, 100)
+
+PUB TestBitmap(testtime) | iteration
+
+    ser.str(string("TestBitmap - "))
+    _timer_set := testtime
+    iteration := 0
+
+    repeat while _timer_set
+        Bitmap($8000, BUFFSZ, 0)
+        iteration++
+
+    Report(testtime, iteration)
+    return iteration
 
 PUB TestBox(testtime) | iteration
 
@@ -115,6 +130,20 @@ PUB TestCircle(testtime) | iteration, x, y
 
     Report(testtime, iteration)
     return iteration
+
+PUB TestClear(testtime) | iteration
+
+    ser.str(string("TestClear - "))
+    _timer_set := testtime
+    iteration := 0
+
+    repeat while _timer_set
+        Clear
+        iteration++
+
+    Report(testtime, iteration)
+    return iteration
+
 
 PUB TestCopy(testtime) | iteration, dx, dy, sx1, sy1, sx2, sy2
 
