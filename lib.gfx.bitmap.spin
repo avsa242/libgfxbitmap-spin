@@ -53,10 +53,11 @@ PUB Char (ch) | glyph_col, glyph_row, glyph_data, x, last_glyph_col, last_glyph_
 ' Write a character to the display
     last_glyph_col := _font_width-1
     last_glyph_row := _font_height-1
+    ch <<= 3
     repeat glyph_col from 0 to last_glyph_col
         x := _col + glyph_col
         repeat glyph_row from 0 to last_glyph_row
-            glyph_data := byte[_font_addr][ch << 3 + glyph_col]
+            glyph_data := byte[_font_addr][ch + glyph_col]
             if glyph_data & |< glyph_row
                 Plot(x, _row + glyph_row, _fgcolor)
             else
