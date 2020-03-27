@@ -306,16 +306,16 @@ PUB RGBW8888_RGB32_Brightness(r, g, b, w, level)
         w := w * level / 255
         return RGBW8888_RGB32(r, g, b, w)
 
-PUB RGB565_R5 (rgb565)
-' Return 5-bit red component of 16-bit RGB color
+PUB RGB565_R8 (rgb565)
+' Isolate red component of 16-bit RGB565 color and return value scaled to 8-bit range
     return (((rgb565 & $F800) >> 11) * 527 + 23 ) >> 6
 
-PUB RGB565_G6 (rgb565)
-' Return 6-bit green component of 16-bit RGB color
+PUB RGB565_G8 (rgb565)
+' Isolate red component of 16-bit RGB565 color and return value scaled to 8-bit range
     return (((rgb565 & $7E0) >> 5)  * 259 + 33 ) >> 6
 
-PUB RGB565_B5 (rgb565)
-' Return 5-bit blue component of 16-bit RGB color
+PUB RGB565_B8 (rgb565)
+' Isolate red component of 16-bit RGB565 color and return value scaled to 8-bit range
     return ((rgb565 & $1F) * 527 + 23 ) >> 6
 
 PUB Scale (sx, sy, ex, ey, offsx, offsy, size) | x, y, dx, dy, in
