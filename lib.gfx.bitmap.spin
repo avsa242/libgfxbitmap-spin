@@ -5,7 +5,7 @@
     Description: Library of generic bitmap-oriented graphics rendering routines
     Copyright (c) 2020
     Started May 19, 2019
-    Updated Feb 8, 2020
+    Updated Mar 27, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -191,12 +191,12 @@ PUB Line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
                 e2 := err << 1
 
                 if e2 > -ddy
-                    err := err - ddy
-                    x1 := x1 + sx
+                    err -= ddy
+                    x1 += sx
 
                 if e2 < ddx
-                    err := err + ddx
-                    y1 := y1 + sy
+                    err +=ddx
+                    y1 += sy
 
 PUB Plot (x, y, color)
 ' Plot pixel at x, y, color c
