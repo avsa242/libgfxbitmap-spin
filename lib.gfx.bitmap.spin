@@ -28,7 +28,7 @@ PUB Bitmap(bitmap_addr, bitmap_size, offset)
 '   bitmap_addr:    Address of bitmap to copy
 '   bitmap_size:    Number of bytes to copy
 '   offset:         Offset within the display buffer to copy to
-    bytemove(_draw_buffer + offset, bitmap_addr, bitmap_size)
+    bytemove(_ptr_framebuffer + offset, bitmap_addr, bitmap_size)
 
 PUB Box(x0, y0, x1, y1, color, filled) | x, y
 ' Draw a box
@@ -97,19 +97,19 @@ PUB Circle(x0, y0, radius, color) | x, y, err, cdx, cdy
 PUB Clear
 ' Clear the display buffer
 #ifdef IL3820
-    longfill(_draw_buffer, _bgcolor, _buff_sz/4)
+    longfill(_ptr_framebuffer, _bgcolor, _buff_sz/4)
 #elseifdef SSD130X
-    longfill(_draw_buffer, _bgcolor, _buff_sz/4)
+    longfill(_ptr_framebuffer, _bgcolor, _buff_sz/4)
 #elseifdef SSD1331
-    longfill(_draw_buffer, _bgcolor, _buff_sz/4)
+    longfill(_ptr_framebuffer, _bgcolor, _buff_sz/4)
 #elseifdef NEOPIXEL
-    longfill(_draw_buffer, _bgcolor, _buff_sz/4)
+    longfill(_ptr_framebuffer, _bgcolor, _buff_sz/4)
 #elseifdef HT16K33-ADAFRUIT
-    longfill(_draw_buffer, _bgcolor, _buff_sz/4)
+    longfill(_ptr_framebuffer, _bgcolor, _buff_sz/4)
 #elseifdef ST7735
-    longfill(_draw_buffer, _bgcolor, _buff_sz/4)
+    longfill(_ptr_framebuffer, _bgcolor, _buff_sz/4)
 #elseifdef SSD1351
-    longfill(_draw_buffer, _bgcolor, _buff_sz/4)
+    longfill(_ptr_framebuffer, _bgcolor, _buff_sz/4)
 #endif
 
 PUB ClearAll
@@ -196,7 +196,7 @@ PUB Line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
                     x1 += sx
 
                 if e2 < ddx
-                    err +=ddx
+                    err += ddx
                     y1 += sy
 
 PUB Plot (x, y, color)
@@ -207,45 +207,45 @@ PUB Plot (x, y, color)
 #ifdef IL3820
     case color
         1:
-            byte[_draw_buffer][(x + y * _disp_width) >> 3] |= $80 >> (x & 7)
+            byte[_ptr_framebuffer][(x + y * _disp_width) >> 3] |= $80 >> (x & 7)
         0:
-            byte[_draw_buffer][(x + y * _disp_width) >> 3] &= !($80 >> (x & 7))
+            byte[_ptr_framebuffer][(x + y * _disp_width) >> 3] &= !($80 >> (x & 7))
         -1:
-            byte[_draw_buffer][(x + y * _disp_width) >> 3] ^= $80 >> (x & 7)
+            byte[_ptr_framebuffer][(x + y * _disp_width) >> 3] ^= $80 >> (x & 7)
         OTHER:
             return
 #elseifdef SSD130X
     case color
         1:
-            byte[_draw_buffer][x + (y>>3) * _disp_width] |= (|< (y&7))
+            byte[_ptr_framebuffer][x + (y>>3) * _disp_width] |= (|< (y&7))
         0:
-            byte[_draw_buffer][x + (y>>3) * _disp_width] &= !(|< (y&7))
+            byte[_ptr_framebuffer][x + (y>>3) * _disp_width] &= !(|< (y&7))
         -1:
-            byte[_draw_buffer][x + (y>>3) * _disp_width] ^= (|< (y&7))
+            byte[_ptr_framebuffer][x + (y>>3) * _disp_width] ^= (|< (y&7))
         OTHER:
             return
 #elseifdef SSD1331
-    word[_draw_buffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
+    word[_ptr_framebuffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
 #elseifdef NEOPIXEL
-    long[_draw_buffer][x + (y * _disp_width)] := color
+    long[_ptr_framebuffer][x + (y * _disp_width)] := color
 #elseifdef HT16K33-ADAFRUIT
     x := x + 7
     x := x // 8
 
     case color
         1:
-            byte[_draw_buffer][y] |= |< x
+            byte[_ptr_framebuffer][y] |= |< x
         0:
-            byte[_draw_buffer][y] &= !(|< x)
+            byte[_ptr_framebuffer][y] &= !(|< x)
         -1:
-            byte[_draw_buffer][y] ^= |< x
+            byte[_ptr_framebuffer][y] ^= |< x
         OTHER:
             return
 
 #elseifdef ST7735
-    word[_draw_buffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
+    word[_ptr_framebuffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
 #elseifdef SSD1351
-    word[_draw_buffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
+    word[_ptr_framebuffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
 #else
 #warning "No supported display types defined!"
 #endif
@@ -256,21 +256,21 @@ PUB Point (x, y)
     y := 0 #> y <# _disp_ymax
 
 #ifdef IL3820
-    return byte[_draw_buffer][(x + y * _disp_width) >> 3]
+    return byte[_ptr_framebuffer][(x + y * _disp_width) >> 3]
 #elseifdef SSD130X
-    return byte[_draw_buffer][x + (y>>3) * _disp_width] >> (y & 7)
+    return byte[_ptr_framebuffer][x + (y>>3) * _disp_width] >> (y & 7)
 #elseifdef SSD1331
-    return word[_draw_buffer][x + (y * _disp_width)]
+    return word[_ptr_framebuffer][x + (y * _disp_width)]
 #elseifdef NEOPIXEL
-    return long[_draw_buffer][x + (y * _disp_width)]
+    return long[_ptr_framebuffer][x + (y * _disp_width)]
 #elseifdef HT16K33-ADAFRUIT
     x := x + 7
     x := x // 8
-    return byte[_draw_buffer][y + (x >> 3) * _disp_width]
+    return byte[_ptr_framebuffer][y + (x >> 3) * _disp_width]
 #elseifdef ST7735
-    return word[_draw_buffer][x + (y * _disp_width)]
+    return word[_ptr_framebuffer][x + (y * _disp_width)]
 #elseifdef SSD1351
-    return word[_draw_buffer][x + (y * _disp_width)]
+    return word[_ptr_framebuffer][x + (y * _disp_width)]
 #else
 #warning "No supported display types defined!"
 #endif
@@ -305,16 +305,16 @@ PUB RGBW8888_RGB32_Brightness(r, g, b, w, level)
         w := w * level / 255
         return RGBW8888_RGB32(r, g, b, w)
 
-PUB RGB565_R5 (rgb565)
-' Return 5-bit red component of 16-bit RGB color
+PUB RGB565_R8 (rgb565)
+' Isolate red component of 16-bit RGB565 color and return value scaled to 8-bit range
     return (((rgb565 & $F800) >> 11) * 527 + 23 ) >> 6
 
-PUB RGB565_G6 (rgb565)
-' Return 6-bit green component of 16-bit RGB color
+PUB RGB565_G8 (rgb565)
+' Isolate red component of 16-bit RGB565 color and return value scaled to 8-bit range
     return (((rgb565 & $7E0) >> 5)  * 259 + 33 ) >> 6
 
-PUB RGB565_B5 (rgb565)
-' Return 5-bit blue component of 16-bit RGB color
+PUB RGB565_B8 (rgb565)
+' Isolate red component of 16-bit RGB565 color and return value scaled to 8-bit range
     return ((rgb565 & $1F) * 527 + 23 ) >> 6
 
 PUB Scale (sx, sy, ex, ey, offsx, offsy, size) | x, y, dx, dy, in
