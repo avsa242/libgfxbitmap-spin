@@ -310,11 +310,11 @@ PUB RGB565_R8 (rgb565)
     return (((rgb565 & $F800) >> 11) * 527 + 23 ) >> 6
 
 PUB RGB565_G8 (rgb565)
-' Isolate red component of 16-bit RGB565 color and return value scaled to 8-bit range
+' Isolate green component of 16-bit RGB565 color and return value scaled to 8-bit range
     return (((rgb565 & $7E0) >> 5)  * 259 + 33 ) >> 6
 
 PUB RGB565_B8 (rgb565)
-' Isolate red component of 16-bit RGB565 color and return value scaled to 8-bit range
+' Isolate blue component of 16-bit RGB565 color and return value scaled to 8-bit range
     return ((rgb565 & $1F) * 527 + 23 ) >> 6
 
 PUB Scale (sx, sy, ex, ey, offsx, offsy, size) | x, y, dx, dy, in
