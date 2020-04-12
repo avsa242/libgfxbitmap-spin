@@ -9,8 +9,10 @@ This is a P8X32A/Propeller, P2X8C4M64P/Propeller 2 library for generic bitmap-or
 * Text rendering (supported by 1bpp, 16bpp displays)
 * Copy bitmap to display buffer, with optional offset
 * Copy, cut, scale region
+* Single-pixel scroll up region
 * Supported displays: SSD1306/1309, SSD1331
 * Preliminary support: IL3820, Neopixels (WS2811, WS2812, WS2812B, WS2813, SK6812 RGB and RGBW, TM1803), HT16K33 (Adafruit-variant 8x8 matrix only), ST7735, SSD1351
+* P2-only display support: QVGA 8bpp
 
 ## Requirements
 
@@ -21,7 +23,7 @@ This is a P8X32A/Propeller, P2X8C4M64P/Propeller 2 library for generic bitmap-or
 
 * P1/SPIN1: ~~Propeller Tool~~ Unsupported - requires a compiler with preprocessor support
 * P1/SPIN1: OpenSpin (tested with 1.00.81)
-* P2/SPIN2: FastSpin (tested with 4.1.0-beta)
+* P2/SPIN2: FastSpin (tested with 4.1.4-beta)
 
 ## Limitations
 
@@ -30,6 +32,7 @@ This is a P8X32A/Propeller, P2X8C4M64P/Propeller 2 library for generic bitmap-or
 
 ## TODO
 
+- [ ] Add methods to scroll display region in other directions
 - [x] Add fast V/H line decision-making to Line primitive (WIP: need performance comparison)
 - [ ] Add beveled/rounded option to Box primitive
 - [ ] Add tri (or poly) primitive(s)
