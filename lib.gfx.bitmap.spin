@@ -258,7 +258,7 @@ PUB Point (x, y)
 #ifdef IL3820
     return byte[_ptr_drawbuffer][(x + y * _disp_width) >> 3]
 #elseifdef SSD130X
-    return byte[_ptr_drawbuffer][x + (y>>3) * _disp_width] >> (y & 7)
+    return (byte[_ptr_drawbuffer][(x + (y >> 3) * _disp_width)] & (1 << (y & 7)) <> 0) * -1
 #elseifdef SSD1331
     return word[_ptr_drawbuffer][x + (y * _disp_width)]
 #elseifdef NEOPIXEL
