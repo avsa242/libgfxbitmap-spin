@@ -110,6 +110,8 @@ PUB Clear
     longfill(_ptr_drawbuffer, _bgcolor, _buff_sz/4)
 #elseifdef SSD1351
     longfill(_ptr_drawbuffer, _bgcolor, _buff_sz/4)
+#elseifdef LEDMATRIX_CHARLIEPLEXED
+    longfill(_ptr_drawbuffer, _bgcolor, _buff_sz/4)
 #endif
 
 PUB ClearAll
@@ -246,6 +248,16 @@ PUB Plot (x, y, color)
     word[_ptr_drawbuffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
 #elseifdef SSD1351
     word[_ptr_drawbuffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
+#elseifdef LEDMATRIX_CHARLIEPLEXED
+    case color
+        1:
+            byte[_ptr_drawbuffer][x + (y>>3) * _disp_width] |= (|< (y&7))
+        0:
+            byte[_ptr_drawbuffer][x + (y>>3) * _disp_width] &= !(|< (y&7))
+        -1:
+            byte[_ptr_drawbuffer][x + (y>>3) * _disp_width] ^= (|< (y&7))
+        OTHER:
+            return
 #else
 #warning "No supported display types defined!"
 #endif
@@ -271,6 +283,8 @@ PUB Point (x, y)
     return word[_ptr_drawbuffer][x + (y * _disp_width)]
 #elseifdef SSD1351
     return word[_ptr_drawbuffer][x + (y * _disp_width)]
+#elseifdef LEDMATRIX_CHARLIEPLEXED
+    return (byte[_ptr_drawbuffer][(x + (y >> 3) * _disp_width)] & (1 << (y & 7)) <> 0) * -1
 #else
 #warning "No supported display types defined!"
 #endif
@@ -332,8 +346,8 @@ PUB ScrollUp(sx, sy, ex, ey) | scr_width, src, dest, x, y
     repeat y from sy+1 to ey
 
 #ifdef IL3820
-        Copy(sx, y, ex, y, sx, y-1)                         ' Use Copy() for display types other than VGA,
-#elseifdef SSD130X                                              for now (simpler to implement)
+        Copy(sx, y, ex, y, sx, y-1)                         ' Use Copy() for display types other than VGA, for now (simpler to implement)
+#elseifdef SSD130X
         Copy(sx, y, ex, y, sx, y-1)
 #elseifdef SSD1331
         Copy(sx, y, ex, y, sx, y-1)
