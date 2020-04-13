@@ -63,6 +63,13 @@ PUB Char (ch) | glyph_col, glyph_row, x, last_glyph_col, last_glyph_row, ch_offs
             else
                 Plot(x, _row + glyph_row, _bgcolor)
 
+    _col += _font_width
+    if _col > _disp_xmax
+        _col := 0
+        _row += _font_height
+        if _row > _disp_ymax
+            _row := 0
+
 PUB Circle(x0, y0, radius, color) | x, y, err, cdx, cdy
 ' Draw a circle
 '   x0, y0: Coordinates
@@ -368,12 +375,6 @@ PUB Str (string_addr) | i
 '   NOTE: Wraps to the left at end of line and to the top-left at end of display
     repeat i from 0 to strsize(string_addr)-1
         Char(byte[string_addr][i])
-        _col += _font_width     'XXX TODO: Move position handling to Char? Then the terminal lib
-        if _col > _disp_xmax    '   could be #included and used in place of this, and also provide
-            _col := 0           '   Bin, Dec, Hex, etc...
-            _row += _font_height'   Not that Char needs to be any slower, than it is, though
-            if _row > _disp_ymax
-                _row := 0
 
 PUB TextCols
 ' Returns number of displayable text columns, based on set display width and set font width
