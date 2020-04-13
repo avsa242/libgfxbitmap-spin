@@ -53,15 +53,26 @@ PUB Char (ch) | glyph_col, glyph_row, x, last_glyph_col, last_glyph_row, ch_offs
 ' Write a character to the display
     last_glyph_col := _font_width-1
     last_glyph_row := _font_height-1
-    ch <<= 3
-    repeat glyph_col from 0 to last_glyph_col
-        x := _col + glyph_col
-        ch_offset := ch + glyph_col
-        repeat glyph_row from 0 to last_glyph_row
-            if byte[_font_addr][ch_offset] & |< glyph_row
-                Plot(x, _row + glyph_row, _fgcolor)
-            else
-                Plot(x, _row + glyph_row, _bgcolor)
+
+    case ch
+        10:
+            _row += _font_height
+            if _row > _disp_ymax
+                _row := 0
+
+        13:
+            _col := 0
+
+        32..127:
+            ch <<= 3
+            repeat glyph_col from 0 to last_glyph_col
+                x := _col + glyph_col
+                ch_offset := ch + glyph_col
+                repeat glyph_row from 0 to last_glyph_row
+                    if byte[_font_addr][ch_offset] & |< glyph_row
+                        Plot(x, _row + glyph_row, _fgcolor)
+                    else
+                        Plot(x, _row + glyph_row, _bgcolor)
 
     _col += _font_width
     if _col > _disp_xmax
