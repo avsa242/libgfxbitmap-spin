@@ -121,7 +121,7 @@ PUB Clear
 #elseifdef SSD1331
     longfill(_ptr_drawbuffer, _bgcolor, _buff_sz/4)
 #elseifdef NEOPIXEL
-    longfill(_ptr_drawbuffer, _bgcolor, _buff_sz/4)
+    longfill(_ptr_drawbuffer, _bgcolor, _buff_sz/4) ' XXX verify
 #elseifdef HT16K33-ADAFRUIT
     longfill(_ptr_drawbuffer, _bgcolor, _buff_sz/4)
 #elseifdef ST7735
@@ -129,6 +129,8 @@ PUB Clear
 #elseifdef SSD1351
     longfill(_ptr_drawbuffer, _bgcolor, _buff_sz/4)
 #elseifdef LEDMATRIX_CHARLIEPLEXED
+    longfill(_ptr_drawbuffer, _bgcolor, _buff_sz/4)
+#elseifdef VGABITMAP6BPP
     longfill(_ptr_drawbuffer, _bgcolor, _buff_sz/4)
 #endif
 
@@ -276,6 +278,8 @@ PUB Plot (x, y, color)
             byte[_ptr_drawbuffer][x + (y>>3) * _disp_width] ^= (|< (y&7))
         OTHER:
             return
+#elseifdef VGABITMAP6BPP
+    byte[_ptr_drawbuffer][x + (y * _disp_width)] := color | $3
 #else
 #warning "No supported display types defined!"
 #endif
@@ -303,6 +307,8 @@ PUB Point (x, y)
     return word[_ptr_drawbuffer][x + (y * _disp_width)]
 #elseifdef LEDMATRIX_CHARLIEPLEXED
     return (byte[_ptr_drawbuffer][(x + (y >> 3) * _disp_width)] & (1 << (y & 7)) <> 0) * -1
+#elseifdef VGABITMAP6BPP
+    return byte[_ptr_drawbuffer][x + (y * _disp_width)]
 #else
 #warning "No supported display types defined!"
 #endif
@@ -313,6 +319,10 @@ PUB Position(col, row)
     row := 0 #> row <# _row_max
     _col := col * _font_width
     _row := row * _font_height
+
+PUB RGB222_RGB6 (r, g, b)
+
+    return ((((r <# 3) #> 0) << 6) | (((g <# 3) #> 0) << 4) | (((b <# 3) #> 0) << 2) | $3)
 
 PUB RGBW8888_RGB32 (r, g, b, w)
 ' Return 32-bit long from discrete Red, Green, Blue, White color components (values 0..255)
@@ -383,6 +393,8 @@ PUB ScrollDown(sx, sy, ex, ey) | scr_width, src, dest, x, y
         bytemove(_ptr_drawbuffer + dest, _ptr_drawbuffer + src, scr_width)
 #elseifdef LEDMATRIX_CHARLIEPLEXED
         Copy(sx, y, ex, y, sx, y+1)
+#elseifdef VGABITMAP6BPP
+    Copy(sx, y, ex, y, sx, y+1)
 #else
 #warning "No supported display types defined!"
 #endif
@@ -405,6 +417,8 @@ PUB ScrollUp(sx, sy, ex, ey) | scr_width, src, dest, x, y
 #elseifdef ST7735
         Copy(sx, y, ex, y, sx, y-1)
 #elseifdef SSD1351
+        Copy(sx, y, ex, y, sx, y-1)
+#elseifdef VGABITMAP6BPP
         Copy(sx, y, ex, y, sx, y-1)
 #else
 #warning "No supported display types defined!"
