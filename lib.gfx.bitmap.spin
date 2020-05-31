@@ -279,7 +279,7 @@ PUB Plot (x, y, color)
         OTHER:
             return
 #elseifdef VGABITMAP6BPP
-    byte[_ptr_drawbuffer][x + (y * _disp_width)] := color | $3
+    byte[_ptr_drawbuffer][x + (y * _disp_width)] := (color << 2) | $3
 #else
 #warning "No supported display types defined!"
 #endif
@@ -308,7 +308,7 @@ PUB Point (x, y)
 #elseifdef LEDMATRIX_CHARLIEPLEXED
     return (byte[_ptr_drawbuffer][(x + (y >> 3) * _disp_width)] & (1 << (y & 7)) <> 0) * -1
 #elseifdef VGABITMAP6BPP
-    return byte[_ptr_drawbuffer][x + (y * _disp_width)]
+    return byte[_ptr_drawbuffer][x + (y * _disp_width)] >> 2
 #else
 #warning "No supported display types defined!"
 #endif
