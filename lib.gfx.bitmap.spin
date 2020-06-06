@@ -45,9 +45,16 @@ PUB Box(x0, y0, x1, y1, color, filled) | x, y
                 Plot(x0, y, color)
                 Plot(x1, y, color)
         TRUE:
-            repeat y from y0 to y1
-                repeat x from x0 to x1
-                    Plot(x, y, color)
+            if lookdown(x0: 0.._disp_width) and lookdown(y0: 0.._disp_height) and lookdown(x1: 0.._disp_width) and lookdown(y1: 0.._disp_height)
+                x := ||(x1-x0)
+                if x1 < x0
+                    repeat y from y0 to y1
+                        memFill(x1, y, color, x)
+                else
+                    repeat y from y0 to y1
+                        memFill(x0, y, color, x)
+            else
+                return FALSE
 
 PUB Char (ch) | glyph_col, glyph_row, x, last_glyph_col, last_glyph_row, ch_offset
 ' Write a character to the display
@@ -523,6 +530,31 @@ PUB TextCols
 PUB TextRows
 ' Returns number of displayable text rows, based on set display height and set font height
     return _disp_height / _font_height
+
+PRI memFill(xs, ys, val, count)
+' Fill region of display buffer memory
+'   xs, ys: Start of region
+'   val: Color
+'   count: Number of consecutive memory locations to write
+#ifdef IL3820
+    bytefill(ptr_start, val, count)
+#elseifdef SSD130X
+    bytefill(ptr_start, val, count)
+#elseifdef SSD1331
+    wordfill(_ptr_drawbuffer + ((xs << 1) + (ys * BYTESPERLN)), ((val >> 8) & $FF) | ((val << 8) & $FF00), count)
+#elseifdef NEOPIXEL
+    longfill(_ptr_drawbuffer + ((xs << 1) + (ys * BYTESPERLN)), ((val >> 8) & $FF) | ((val << 8) & $FF00), count)
+#elseifdef HT16K33-ADAFRUIT
+    bytefill(ptr_start, val, count)
+#elseifdef ST7735
+    wordfill(_ptr_drawbuffer + ((xs << 1) + (ys * BYTESPERLN)), ((val >> 8) & $FF) | ((val << 8) & $FF00), count)
+#elseifdef SSD1351
+    wordfill(_ptr_drawbuffer + ((xs << 1) + (ys * BYTESPERLN)), ((val >> 8) & $FF) | ((val << 8) & $FF00), count)
+#elseifdef LEDMATRIX_CHARLIEPLEXED
+    bytefill(ptr_start, val, count)
+#elseifdef VGABITMAP6BPP
+    bytefill(_ptr_drawbuffer + ((xs << 1) + (ys * BYTESPERLN)), ((val >> 8) & $FF) | ((val << 8) & $FF00), count)
+#endif
 
 #include "lib.terminal.spin"
 
