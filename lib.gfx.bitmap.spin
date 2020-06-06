@@ -516,12 +516,6 @@ PUB ScrollUp(sx, sy, ex, ey) | scr_width, src, dest, x, y
 #warning "No supported display types defined!"
 #endif
 
-PUB Str (string_addr) | i
-' Write string at string_addr to the display @ row and column.
-'   NOTE: Wraps to the left at end of line and to the top-left at end of display
-    repeat i from 0 to strsize(string_addr)-1
-        Char(byte[string_addr][i])
-
 PUB TextCols
 ' Returns number of displayable text columns, based on set display width and set font width
     return _disp_width / _font_width
@@ -529,6 +523,8 @@ PUB TextCols
 PUB TextRows
 ' Returns number of displayable text rows, based on set display height and set font height
     return _disp_height / _font_height
+
+#include "lib.terminal.spin"
 
 DAT
 {
