@@ -382,7 +382,9 @@ PUB ScrollDown(sx, sy, ex, ey) | scr_width, src, dest, x, y
         dest := sx + ((y+1) * BYTESPERLN)
         wordmove(_ptr_drawbuffer + dest, _ptr_drawbuffer + src, scr_width)
 #elseifdef NEOPIXEL
-        Copy(sx, y, ex, y, sx, y+1)
+        src := sx + (y * BYTESPERLN)
+        dest := sx + ((y+1) * BYTESPERLN)
+        longmove(_ptr_drawbuffer + dest, _ptr_drawbuffer + src, scr_width)
 #elseifdef HT16K33-ADAFRUIT
         Copy(sx, y, ex, y, sx, y+1)
 #elseifdef ST7735
@@ -393,8 +395,6 @@ PUB ScrollDown(sx, sy, ex, ey) | scr_width, src, dest, x, y
         src := sx + (y * BYTESPERLN)
         dest := sx + ((y+1) * BYTESPERLN)
         wordmove(_ptr_drawbuffer + dest, _ptr_drawbuffer + src, scr_width)
-#elseifdef LEDMATRIX_CHARLIEPLEXED
-        Copy(sx, y, ex, y, sx, y+1)
 #elseifdef VGABITMAP6BPP
         src := sx + (y * _disp_width)
         dest := sx + ((y+1) * _disp_width)
@@ -419,7 +419,9 @@ PUB ScrollLeft(sx, sy, ex, ey) | scr_width, src, dest, x, y
         dest := (sx-BYTESPERPX) + (y * BYTESPERLN)
         wordmove(_ptr_drawbuffer + dest, _ptr_drawbuffer + src, scr_width)
 #elseifdef NEOPIXEL
-        Copy(sx, y, ex, y, sx, y-1)
+        src := sx + (y * BYTESPERLN)
+        dest := (sx-BYTESPERPX) + (y * BYTESPERLN)
+        longmove(_ptr_drawbuffer + dest, _ptr_drawbuffer + src, scr_width)
 #elseifdef HT16K33-ADAFRUIT
         Copy(sx, y, ex, y, sx, y-1)
 #elseifdef ST7735
@@ -454,7 +456,9 @@ PUB ScrollRight(sx, sy, ex, ey) | scr_width, src, dest, y
         dest := (sx+BYTESPERPX) + (y * BYTESPERLN)
         wordmove(_ptr_drawbuffer + dest, _ptr_drawbuffer + src, scr_width)
 #elseifdef NEOPIXEL
-        Copy(sx, y, ex, y, sx, y)
+        src := sx + (y * BYTESPERLN)
+        dest := (sx+BYTESPERPX) + (y * BYTESPERLN)
+        longmove(_ptr_drawbuffer + dest, _ptr_drawbuffer + src, scr_width)
 #elseifdef HT16K33-ADAFRUIT
         Copy(sx, y, ex, y, sx, y)
 #elseifdef ST7735
@@ -489,7 +493,9 @@ PUB ScrollUp(sx, sy, ex, ey) | scr_width, src, dest, x, y
         dest := sx + ((y-1) * BYTESPERLN)
         wordmove(_ptr_drawbuffer + dest, _ptr_drawbuffer + src, scr_width)
 #elseifdef NEOPIXEL
-        Copy(sx, y, ex, y, sx, y-1)
+        src := sx + (y * BYTESPERLN)
+        dest := sx + ((y-1) * BYTESPERLN)
+        longmove(_ptr_drawbuffer + dest, _ptr_drawbuffer + src, scr_width)
 #elseifdef HT16K33-ADAFRUIT
         Copy(sx, y, ex, y, sx, y-1)
 #elseifdef ST7735
