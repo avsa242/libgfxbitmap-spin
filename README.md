@@ -24,7 +24,7 @@ This is a P8X32A/Propeller, P2X8C4M64P/Propeller 2 library for generic bitmap-or
 
 * P1/SPIN1: ~~Propeller Tool~~ Unsupported - requires a compiler with preprocessor support
 * P1/SPIN1: OpenSpin (tested with 1.00.81)
-* P2/SPIN2: FastSpin (tested with 4.1.4-beta)
+* P2/SPIN2: FastSpin (tested with 4.1.10-beta)
 
 ## Limitations
 
@@ -44,4 +44,4 @@ This is a P8X32A/Propeller, P2X8C4M64P/Propeller 2 library for generic bitmap-or
 - [ ] Speed up Get/Put with block memory moves
 - [ ] Rotate bitmap
 - [x] Scale bitmap
-
+- [ ] Modify Bitmap() to use x, y coords as offset, rather than memory address offset

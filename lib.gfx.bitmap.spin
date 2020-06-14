@@ -328,7 +328,10 @@ PUB Position(col, row)
     _row := row * _font_height
 
 PUB RGB222_RGB6 (r, g, b)
-
+' Return 6-bit color from discrete Red, Green, Blue color components
+'   Valid values:
+'       r, g, b: 0..3
+'   NOTE: The least-significant two bits are a requirement of the 6bpp VGA display driver
     return ((((r <# 3) #> 0) << 6) | (((g <# 3) #> 0) << 4) | (((b <# 3) #> 0) << 2) | $3)
 
 PUB RGBW8888_RGB32 (r, g, b, w)
@@ -339,8 +342,11 @@ PUB RGBW8888_RGB32 (r, g, b, w)
     result.byte[0] := w
 
 PUB RGBW8888_RGB32_Brightness(r, g, b, w, level)
-' -- r, g, b, and w are element levels, 0..255
-' -- level is brightness, 0..255 (0..100%)
+' Return 32-bit long from discrete Red, Green, Blue, White color components
+'   and clamp all color channels to maximum level or brightness
+'   Valid values:
+'       r, g, b, w: 0..255
+'       level: 0..100 (%)
     if (level =< 0)
         return $00_00_00_00
 
@@ -418,9 +424,9 @@ PUB ScrollLeft(sx, sy, ex, ey) | scr_width, src, dest, x, y
     repeat y from sy to ey
 
 #ifdef IL3820
-        Copy(sx, y, ex, y, sx, y-1)                         ' Use Copy() for display types other than VGA, for now (simpler to implement)
+        Copy(sx, y, ex, y, sx-1, y)                         ' Use Copy() for display types other than VGA, for now (simpler to implement)
 #elseifdef SSD130X
-        Copy(sx, y, ex, y, sx, y-1)
+        Copy(sx, y, ex, y, sx-1, y)
 #elseifdef SSD1331
         src := sx + (y * BYTESPERLN)
         dest := (sx-BYTESPERPX) + (y * BYTESPERLN)
@@ -430,7 +436,7 @@ PUB ScrollLeft(sx, sy, ex, ey) | scr_width, src, dest, x, y
         dest := (sx-BYTESPERPX) + (y * BYTESPERLN)
         longmove(_ptr_drawbuffer + dest, _ptr_drawbuffer + src, scr_width)
 #elseifdef HT16K33-ADAFRUIT
-        Copy(sx, y, ex, y, sx, y-1)
+        Copy(sx, y, ex, y, sx-1, y)
 #elseifdef ST7735
         src := sx + (y * BYTESPERLN)
         dest := (sx-BYTESPERPX) + (y * BYTESPERLN)
@@ -455,9 +461,9 @@ PUB ScrollRight(sx, sy, ex, ey) | scr_width, src, dest, y
     repeat y from sy to ey
 
 #ifdef IL3820
-        Copy(sx, y, ex, y, sx, y)                         ' Use Copy() for display types other than VGA, for now (simpler to implement)
+        Copy(sx, y, ex, y, sx+1, y)                         ' Use Copy() for display types other than VGA, for now (simpler to implement)
 #elseifdef SSD130X
-        Copy(sx, y, ex, y, sx, y)
+        Copy(sx, y, ex, y, sx+1, y)
 #elseifdef SSD1331
         src := sx + (y * BYTESPERLN)
         dest := (sx+BYTESPERPX) + (y * BYTESPERLN)
@@ -467,7 +473,7 @@ PUB ScrollRight(sx, sy, ex, ey) | scr_width, src, dest, y
         dest := (sx+BYTESPERPX) + (y * BYTESPERLN)
         longmove(_ptr_drawbuffer + dest, _ptr_drawbuffer + src, scr_width)
 #elseifdef HT16K33-ADAFRUIT
-        Copy(sx, y, ex, y, sx, y)
+        Copy(sx, y, ex, y, sx+1, y)
 #elseifdef ST7735
         src := sx + (y * BYTESPERLN)
         dest := (sx+BYTESPERPX) + (y * BYTESPERLN)
@@ -539,7 +545,7 @@ PRI memFill(xs, ys, val, count)
 #ifdef IL3820
     bytefill(ptr_start, val, count)
 #elseifdef SSD130X
-    bytefill(ptr_start, val, count)
+    bytefill(_ptr_drawbuffer + (xs + (ys * BYTESPERLN)), val, count)
 #elseifdef SSD1331
     wordfill(_ptr_drawbuffer + ((xs << 1) + (ys * BYTESPERLN)), ((val >> 8) & $FF) | ((val << 8) & $FF00), count)
 #elseifdef NEOPIXEL

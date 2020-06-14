@@ -5,7 +5,7 @@
     Description: Library of generic bitmap-oriented graphics rendering routines (P2 version)
     Copyright (c) 2020
     Started May 19, 2019
-    Updated Jun 6, 2020
+    Updated Jun 14, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -19,9 +19,9 @@ VAR
     long _font_width, _font_height, _font_addr
     long _fgcolor, _bgcolor
 
-PUB BGColor (col)
+PUB BGColor (col): result
 ' Set background color for subsequent drawing
-    return _bgcolor := col
+    result := _bgcolor := col
 
 PUB Bitmap(bitmap_addr, bitmap_size, offset=0)
 ' Copy a bitmap to the display buffer
@@ -45,6 +45,23 @@ PUB Box(x0, y0, x1, y1, color, filled=0) | x, y
                 Plot(x0, y, color)
                 Plot(x1, y, color)
         TRUE:
+#ifdef SSD130X
+            repeat y from y0 to y1                          ' Temporary for 1bpp drivers
+                repeat x from x0 to x1
+                    Plot(x, y, color)
+#elseifdef IL3820
+            repeat y from y0 to y1
+                repeat x from x0 to x1
+                    Plot(x, y, color)
+#elseifdef LEDMATRIX_CHARLIEPLEXED
+            repeat y from y0 to y1
+                repeat x from x0 to x1
+                    Plot(x, y, color)
+#elseifdef HT16K33-ADAFRUIT
+            repeat y from y0 to y1
+                repeat x from x0 to x1
+                    Plot(x, y, color)
+#else
             if x0 >= 0 and x0 <= _disp_width and y0 >= 0 and y0 <= _disp_height and x1 >= 0 and x1 <= _disp_width and y1 >= 0 and y1 <= _disp_height
                 x := abs(x1-x0)
                 if x1 < x0
@@ -55,6 +72,7 @@ PUB Box(x0, y0, x1, y1, color, filled=0) | x, y
                         memFill(x0, y, color, x)
             else
                 return FALSE
+#endif
 
 PUB Char (ch) | glyph_col, glyph_row, x, last_glyph_col, last_glyph_row, ch_offset
 ' Write a character to the display
@@ -119,33 +137,33 @@ PUB Circle(x0, y0, radius, color) | x, y, err, cdx, cdy
             cdx += 2
             err += cdx - (radius << 1)
 
-PUB Clear
+PUB Clear()
 ' Clear the display buffer
 #ifdef IL3820
-    longfill(_ptr_drawbuffer, _bgcolor, _buff_sz/4)
+    bytefill(_ptr_drawbuffer, _bgcolor, _buff_sz)
 #elseifdef SSD130X
-    longfill(_ptr_drawbuffer, _bgcolor, _buff_sz/4)
+    bytefill(_ptr_drawbuffer, _bgcolor, _buff_sz)
 #elseifdef SSD1331
-    longfill(_ptr_drawbuffer, _bgcolor, _buff_sz/4)
+    wordfill(_ptr_drawbuffer, _bgcolor, _buff_sz/2)
 #elseifdef NEOPIXEL
-    longfill(_ptr_drawbuffer, _bgcolor, _buff_sz/4)
+    longfill(_ptr_drawbuffer, _bgcolor, _buff_sz)
 #elseifdef HT16K33-ADAFRUIT
-    longfill(_ptr_drawbuffer, _bgcolor, _buff_sz/4)
+    bytefill(_ptr_drawbuffer, _bgcolor, _buff_sz)
 #elseifdef ST7735
-    longfill(_ptr_drawbuffer, _bgcolor, _buff_sz/4)
+    wordfill(_ptr_drawbuffer, _bgcolor, _buff_sz/2)
 #elseifdef SSD1351
-    longfill(_ptr_drawbuffer, _bgcolor, _buff_sz/4)
+    wordfill(_ptr_drawbuffer, _bgcolor, _buff_sz/2)
 #elseifdef VGABITMAP8BPP
     longfill(_ptr_drawbuffer, _bgcolor, _buff_sz/4)
 #elseifdef LEDMATRIX_CHARLIEPLEXED
-    longfill(_ptr_drawbuffer, _bgcolor, _buff_sz/4)
+    bytefill(_ptr_drawbuffer, _bgcolor, _buff_sz)
 #endif
 
-PUB ClearAll
+PUB ClearAll()
 
-    ClearAccel
-    Clear
-    Update
+    ClearAccel()
+    Clear()
+    Update()
 
 PUB Copy (sx, sy, ex, ey, dx, dy) | x, y, tmp
 ' Copy rectangular region at (sx, sy, ex, ey) to (dx, dy)
@@ -163,21 +181,22 @@ PUB Cut (sx, sy, ex, ey, dx, dy) | x, y, tmp
             Plot((dx + x)-sx, (dy + y)-sy, tmp)             ' Copy to destination region
             Plot(x, y, _bgcolor)                            ' Cut the original region
 
-PUB FGColor (col)
+PUB FGColor (col): result
 ' Set foreground color of subsequent drawing operations
-    return _fgcolor := col
+    result := _fgcolor := col
 
-PUB FontAddress(addr)
+PUB FontAddress(addr): result
 ' Set address of font definition
     case addr
         $0004..$7FFFF:
             _font_addr := addr
         OTHER:
-            return _font_addr
+            result := _font_addr
+            return
 
-PUB FontHeight
+PUB FontHeight(): result
 ' Return the set font height
-    return _font_height
+    result := _font_height
 
 PUB FontSize(width, height)
 ' Set expected dimensions of font, in pixels
@@ -189,9 +208,9 @@ PUB FontSize(width, height)
     _col_max := _disp_xmax
     _row_max := _disp_ymax
 
-PUB FontWidth
+PUB FontWidth(): result
 ' Return the set font width
-    return _font_width
+    result := _font_width
 
 PUB Line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
 ' Draw line from x1, y1 to x2, y2, in color c
@@ -291,7 +310,7 @@ PUB Plot (x, y, color)
 #warning "No supported display types defined!"
 #endif
 
-PUB Point (x, y)
+PUB Point (x, y): result
 ' Get color of pixel at x, y
     x := 0 #> x <# _disp_xmax
     y := 0 #> y <# _disp_ymax
@@ -327,14 +346,14 @@ PUB Position(col, row)
     _col := col * _font_width
     _row := row * _font_height
 
-PUB RGBW8888_RGB32 (r, g, b, w)
+PUB RGBW8888_RGB32 (r, g, b, w): result
 ' Return 32-bit long from discrete Red, Green, Blue, White color components (values 0..255)
     result.byte[3] := r
     result.byte[2] := g
     result.byte[1] := b
     result.byte[0] := w
 
-PUB RGBW8888_RGB32_Brightness(r, g, b, w, level)
+PUB RGBW8888_RGB32_Brightness(r, g, b, w, level): result
 ' -- r, g, b, and w are element levels, 0..255
 ' -- level is brightness, 0..255 (0..100%)
     if (level =< 0)
@@ -350,15 +369,15 @@ PUB RGBW8888_RGB32_Brightness(r, g, b, w, level)
         w := w * level / 255
         return RGBW8888_RGB32(r, g, b, w)
 
-PUB RGB565_R8 (rgb565)
+PUB RGB565_R8 (rgb565): result
 ' Isolate red component of 16-bit RGB565 color and return value scaled to 8-bit range
     return (((rgb565 & $F800) >> 11) * 527 + 23 ) >> 6
 
-PUB RGB565_G8 (rgb565)
+PUB RGB565_G8 (rgb565): result
 ' Isolate green component of 16-bit RGB565 color and return value scaled to 8-bit range
     return (((rgb565 & $7E0) >> 5)  * 259 + 33 ) >> 6
 
-PUB RGB565_B8 (rgb565)
+PUB RGB565_B8 (rgb565): result
 ' Isolate blue component of 16-bit RGB565 color and return value scaled to 8-bit range
     return ((rgb565 & $1F) * 527 + 23 ) >> 6
 
@@ -446,7 +465,7 @@ PUB ScrollLeft(sx, sy, ex, ey) | scr_width, src, dest, x, y
 #endif
 
 PUB ScrollRight(sx, sy, ex, ey) | scr_width, src, dest, y
-' Scroll a region of the display up by 1 pixel
+' Scroll a region of the display right by 1 pixel
     scr_width := ex-sx
     repeat y from sy to ey
 
@@ -519,13 +538,13 @@ PUB ScrollUp(sx, sy, ex, ey) | scr_width, src, dest, x, y
 #warning "No supported display types defined!"
 #endif
 
-PUB TextCols
+PUB TextCols(): result
 ' Returns number of displayable text columns, based on set display width and set font width
-    return _disp_width / _font_width
+    result := _disp_width / _font_width
 
-PUB TextRows
+PUB TextRows(): result
 ' Returns number of displayable text rows, based on set display height and set font height
-    return _disp_height / _font_height
+    result := _disp_height / _font_height
 
 PRI memFill(xs, ys, val, count)
 ' Fill region of display buffer memory
