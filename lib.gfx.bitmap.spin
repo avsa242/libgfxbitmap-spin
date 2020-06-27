@@ -5,7 +5,7 @@
     Description: Library of generic bitmap-oriented graphics rendering routines
     Copyright (c) 2020
     Started May 19, 2019
-    Updated Jun 18, 2020
+    Updated Jun 27, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -578,9 +578,8 @@ PRI memFill(xs, ys, val, count)
 #elseifdef LEDMATRIX_CHARLIEPLEXED
     bytefill(ptr_start, val, count)
 #elseifdef VGABITMAP6BPP
-    bytefill(_ptr_drawbuffer + ((xs << 1) + (ys * BYTESPERLN)), ((val >> 8) & $FF) | ((val << 8) & $FF00), count)
+    bytefill(_ptr_drawbuffer + (xs + (ys * BYTESPERLN)), (val << 2) | $3, count)
 #endif
-
 #include "lib.terminal.spin"
 
 DAT
