@@ -249,9 +249,8 @@ PUB Line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
 
 PUB Plot (x, y, color)
 ' Plot pixel at x, y, color c
-    x := 0 #> x <# _disp_xmax
-    y := 0 #> y <# _disp_ymax
-
+    ifnot (x >= 0 and x <= _disp_width) and (y >= 0 and y <= _disp_height)
+        return
 #ifdef IL3820
     case color
         1:

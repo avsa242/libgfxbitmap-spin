@@ -62,8 +62,11 @@ PUB Box(x0, y0, x1, y1, color, filled) | x, y
                 repeat x from x0 to x1
                     Plot(x, y, color)
 #else
+#ifdef __FASTSPIN__
+            if x0 => 0 and x0 =< _disp_width and y0 => 0 and y0 =< _disp_height and x1 => 0 and x1 =< _disp_width and y1 => 0 and y1 =< _disp_height
+#else
             if lookdown(x0: 0.._disp_width) and lookdown(y0: 0.._disp_height) and lookdown(x1: 0.._disp_width) and lookdown(y1: 0.._disp_height)
-
+#endif
                 x := ||(x1-x0)
                 if x1 < x0
                     repeat y from y0 to y1
@@ -249,8 +252,13 @@ PUB Line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
 
 PUB Plot (x, y, color)
 ' Plot pixel at x, y, color c
-    x := 0 #> x <# _disp_xmax
-    y := 0 #> y <# _disp_ymax
+#ifdef __FASTSPIN__
+    ifnot x => 0 and x =< _disp_width and y => 0 and y =< _disp_height
+        return
+#else
+    if lookdown(x: 0.._disp_width) and lookdown(y: 0.._disp_height)
+        return
+#endif
 
 #ifdef IL3820
     case color
