@@ -256,7 +256,7 @@ PUB Plot (x, y, color)
     ifnot x => 0 and x =< _disp_width and y => 0 and y =< _disp_height
         return
 #else
-    if lookdown(x: 0.._disp_width) and lookdown(y: 0.._disp_height)
+    ifnot lookdown(x: 0.._disp_width) and lookdown(y: 0.._disp_height)
         return
 #endif
 
