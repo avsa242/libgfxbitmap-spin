@@ -5,7 +5,7 @@
     Description: Library of generic bitmap-oriented graphics rendering routines
     Copyright (c) 2020
     Started May 19, 2019
-    Updated Jun 27, 2020
+    Updated Jun 28, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -253,10 +253,10 @@ PUB Line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
 PUB Plot (x, y, color)
 ' Plot pixel at x, y, color c
 #ifdef __FASTSPIN__
-    ifnot x => 0 and x =< _disp_width and y => 0 and y =< _disp_height
+    ifnot x => 0 and x =< _disp_xmax and y => 0 and y =< _disp_ymax
         return
 #else
-    ifnot lookdown(x: 0.._disp_width) and lookdown(y: 0.._disp_height)
+    ifnot lookdown(x: 0.._disp_xmax) and lookdown(y: 0.._disp_ymax)
         return
 #endif
 
