@@ -5,7 +5,7 @@
     Description: Library of generic bitmap-oriented graphics rendering routines
     Copyright (c) 2020
     Started May 19, 2019
-    Updated Jun 28, 2020
+    Updated Jul 17, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -104,7 +104,7 @@ PUB Char (ch) | glyph_col, glyph_row, x, last_glyph_col, last_glyph_row, ch_offs
                         Plot(x, _row + glyph_row, _bgcolor)
 
             _col += _font_width
-            if _col > _disp_xmax
+            if _col > _disp_xmax-fontwidth
                 _col := 0
                 _row += _font_height
                 if _row > _disp_ymax
@@ -208,8 +208,15 @@ PUB FontSize(width, height)
 '       This will affect the number of text columns
     _font_width := width
     _font_height := height
-    _col_max := _disp_xmax
-    _row_max := _disp_ymax
+    if _disp_width // _font_width                           ' Ended up with a remainder of a column,
+        _col_max := (_disp_width/_font_width) - 1           '   so subtract it out
+    else
+        _col_max := _disp_height/_font_width
+
+    if _disp_height // _font_height
+        _row_max := (_disp_height/_font_height) - 1
+    else
+        _row_max := _disp_height/_font_height
 
 PUB FontWidth
 ' Return the set font width
