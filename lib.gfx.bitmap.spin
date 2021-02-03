@@ -5,7 +5,7 @@
     Description: Library of generic bitmap-oriented graphics rendering routines
     Copyright (c) 2021
     Started May 19, 2019
-    Updated Jan 30, 2021
+    Updated Feb 3, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -131,36 +131,44 @@ PUB Char(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, last_glyph_
                 repeat char_ht                  '   the display
                     scrollup(0, 0, _disp_xmax, _disp_ymax)
 
-PUB Circle(x0, y0, radius, color) | x, y, err, cdx, cdy
+PUB Circle(x0, y0, radius, color, filled) | x, y, err, cdx, cdy, ht
 ' Draw a circle
 '   x0, y0: Coordinates
 '   radius: Circle radius
 '   color: Color to draw circle
-    x := radius - 1
-    y := 0
-    cdx := 1
-    cdy := 1
-    err := cdx - (radius << 1)
+'   filled: Whether or not to draw a filled circle (0: no, nonzero: yes)
+    case filled
+        FALSE:
+            x := radius - 1
+            y := 0
+            cdx := 1
+            cdy := 1
+            err := cdx - (radius << 1)
 
-    repeat while (x => y)
-        Plot(x0 + x, y0 + y, color)
-        Plot(x0 + y, y0 + x, color)
-        Plot(x0 - y, y0 + x, color)
-        Plot(x0 - x, y0 + y, color)
-        Plot(x0 - x, y0 - y, color)
-        Plot(x0 - y, y0 - x, color)
-        Plot(x0 + y, y0 - x, color)
-        Plot(x0 + x, y0 - y, color)
+            repeat while (x >= y)
+                plot(x0 + x, y0 + y, color)
+                plot(x0 + y, y0 + x, color)
+                plot(x0 - y, y0 + x, color)
+                plot(x0 - x, y0 + y, color)
+                plot(x0 - x, y0 - y, color)
+                plot(x0 - y, y0 - x, color)
+                plot(x0 + y, y0 - x, color)
+                plot(x0 + x, y0 - y, color)
 
-        if (err =< 0)
-            y++
-            err += cdy
-            cdy += 2
+                if (err <= 0)
+                    y++
+                    err += cdy
+                    cdy += 2
 
-        if (err > 0)
-            x--
-            cdx += 2
-            err += cdx - (radius << 1)
+                if (err > 0)
+                    x--
+                    cdx += 2
+                    err += cdx - (radius << 1)
+        other:
+            repeat x from -radius to radius
+                ht := ^^((radius * radius) - (x * x))
+                repeat y from -ht to ht-1
+                    plot(x0 + x, y0 + y, color)
 
 #ifndef GFX_DIRECT
 PUB Clear{}
