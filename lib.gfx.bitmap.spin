@@ -5,7 +5,7 @@
     Description: Library of generic bitmap-oriented graphics rendering routines
     Copyright (c) 2021
     Started May 19, 2019
-    Updated Feb 3, 2021
+    Updated Apr 3, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -145,7 +145,7 @@ PUB Circle(x0, y0, radius, color, filled) | x, y, err, cdx, cdy, ht
             cdy := 1
             err := cdx - (radius << 1)
 
-            repeat while (x >= y)
+            repeat while (x => y)
                 plot(x0 + x, y0 + y, color)
                 plot(x0 + y, y0 + x, color)
                 plot(x0 - y, y0 + x, color)
@@ -155,7 +155,7 @@ PUB Circle(x0, y0, radius, color, filled) | x, y, err, cdx, cdy, ht
                 plot(x0 + y, y0 - x, color)
                 plot(x0 + x, y0 - y, color)
 
-                if (err <= 0)
+                if (err =< 0)
                     y++
                     err += cdy
                     cdy += 2
