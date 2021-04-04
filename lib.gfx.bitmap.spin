@@ -5,7 +5,7 @@
     Description: Library of generic bitmap-oriented graphics rendering routines
     Copyright (c) 2021
     Started May 19, 2019
-    Updated Apr 3, 2021
+    Updated Apr 4, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -51,7 +51,7 @@ PUB Box(x0, y0, x1, y1, color, filled) | x, y
             repeat y from y0 to y1                          ' Temporary for 1bpp drivers
                 repeat x from x0 to x1
                     Plot(x, y, color)
-#elseifdef IL3820
+#elseifdef IL38xx
             repeat y from y0 to y1
                 repeat x from x0 to x1
                     Plot(x, y, color)
@@ -173,7 +173,7 @@ PUB Circle(x0, y0, radius, color, filled) | x, y, err, cdx, cdy, ht
 #ifndef GFX_DIRECT
 PUB Clear{}
 ' Clear the display buffer
-#ifdef IL3820
+#ifdef IL38xx
     bytefill(_ptr_drawbuffer, _bgcolor, _buff_sz)
 #elseifdef SSD130X
     bytefill(_ptr_drawbuffer, _bgcolor, _buff_sz)
@@ -308,7 +308,7 @@ PUB Plot(x, y, color)
         return
 #endif
 
-#ifdef IL3820
+#ifdef IL38xx
     case color
         1:
             byte[_ptr_drawbuffer][(x + y * _disp_width) >> 3] |= $80 >> (x & 7)
@@ -372,7 +372,7 @@ PUB Point(x, y): pix_clr
     x := 0 #> x <# _disp_xmax
     y := 0 #> y <# _disp_ymax
 
-#ifdef IL3820
+#ifdef IL38xx
     return byte[_ptr_drawbuffer][(x + y * _disp_width) >> 3]
 #elseifdef SSD130X
     return (byte[_ptr_drawbuffer][(x + (y >> 3) * _disp_width)] & (1 << (y & 7)) <> 0) * -1
@@ -462,7 +462,7 @@ PUB ScrollDown(sx, sy, ex, ey) | scr_width, src, dest, x, y
     scr_width := ex-sx
     repeat y from ey-1 to sy
 
-#ifdef IL3820
+#ifdef IL38xx
         copy(sx, y, ex, y, sx, y+1)             ' Use Copy() for monochrome
 #elseifdef SSD130X                              ' display types, until a more
         copy(sx, y, ex, y, sx, y+1)             ' efficient method can be
@@ -499,7 +499,7 @@ PUB ScrollLeft(sx, sy, ex, ey) | scr_width, src, dest, x, y
     scr_width := ex-sx
     repeat y from sy to ey
 
-#ifdef IL3820
+#ifdef IL38xx
         copy(sx, y, ex, y, sx-1, y)
 #elseifdef SSD130X
         copy(sx, y, ex, y, sx-1, y)
@@ -536,7 +536,7 @@ PUB ScrollRight(sx, sy, ex, ey) | scr_width, src, dest, y
     scr_width := ex-sx
     repeat y from sy to ey
 
-#ifdef IL3820
+#ifdef IL38xx
         copy(sx, y, ex, y, sx+1, y)
 #elseifdef SSD130X
         copy(sx, y, ex, y, sx+1, y)
@@ -573,7 +573,7 @@ PUB ScrollUp(sx, sy, ex, ey) | scr_width, src, dest, x, y
     scr_width := ex-sx
     repeat y from sy+1 to ey
 
-#ifdef IL3820
+#ifdef IL38xx
         copy(sx, y, ex, y, sx, y-1)
 #elseifdef SSD130X
         copy(sx, y, ex, y, sx, y-1)
@@ -618,7 +618,7 @@ PRI memFill(xs, ys, val, count)
 '   xs, ys: Start of region
 '   val: Color
 '   count: Number of consecutive memory locations to write
-#ifdef IL3820
+#ifdef IL38xx
     bytefill(_ptr_drawbuffer + (xs + (ys * BYTESPERLN)), val, count)
 #elseifdef SSD130X
     bytefill(_ptr_drawbuffer + (xs + (ys * BYTESPERLN)), val, count)
