@@ -344,7 +344,7 @@ PUB Plot(x, y, color)
             return
 
 #elseifdef ST7735
-    word[_ptr_drawbuffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
+    word[_ptr_drawbuffer][x + (y * _disp_width)] := color
 #elseifdef SSD1351
     word[_ptr_drawbuffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
 #elseifdef VGABITMAP8BPP
@@ -617,7 +617,7 @@ PRI memFill(xs, ys, val, count)
 #elseifdef HT16K33-ADAFRUIT
     bytefill(_ptr_drawbuffer + (xs + (ys * _bytesperln)), val, count)
 #elseifdef ST7735
-    wordfill(_ptr_drawbuffer + ((xs << 1) + (ys * _bytesperln)), ((val >> 8) & $FF) | ((val << 8) & $FF00), count)
+    wordfill(_ptr_drawbuffer + ((xs << 1) + (ys * _bytesperln)), val, count)
 #elseifdef SSD1351
     wordfill(_ptr_drawbuffer + ((xs << 1) + (ys * _bytesperln)), ((val >> 8) & $FF) | ((val << 8) & $FF00), count)
 #elseifdef LEDMATRIX_CHARLIEPLEXED
