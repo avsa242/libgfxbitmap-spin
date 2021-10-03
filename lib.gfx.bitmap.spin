@@ -40,6 +40,7 @@ PUB Bitmap(bitmap_addr, bitmap_size, offset)
     bytemove(_ptr_drawbuffer + offset, bitmap_addr, bitmap_size)
 #endif
 
+#ifndef GFX_DIRECT
 PUB Box(x0, y0, x1, y1, color, filled) | x, y
 ' Draw a box
 '   x0, y0: Start coordinates x0, y0
@@ -94,6 +95,7 @@ PUB Box(x0, y0, x1, y1, color, filled) | x, y
                         memFill(x0, y, color, x)
             else
                 return FALSE
+#endif
 #endif
 #endif
 
@@ -283,6 +285,7 @@ PUB FontWidth{}: curr_wid
 ' Return the set font width
     return _font_width
 
+#ifndef GFX_DIRECT
 PUB Line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
 ' Draw line from x1, y1 to x2, y2, in color c
     case x1 == x2 or y1 == y2
@@ -317,6 +320,8 @@ PUB Line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
                 if e2 < ddx
                     err += ddx
                     y1 += sy
+#endif
+
 #ifndef GFX_DIRECT
 PUB Plot(x, y, color)
 ' Plot pixel at x, y, color c
