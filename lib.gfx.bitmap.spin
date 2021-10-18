@@ -43,7 +43,8 @@ PUB Bitmap(ptr_bmap, xs, ys, bm_wid, bm_lns) | offs
         '   then copy the bitmap one line at a time,
         '   using the display's defined native word size
         offs := ((ys++ * _bytesperln) + xs)     ' increment Y start
-        MEMMV_NATIVE(_ptr_drawbuffer+offs, ptr_bmap+offs, bm_wid)
+        MEMMV_NATIVE(_ptr_drawbuffer+offs <# _ptr_drawbuffer+_buff_sz, {
+}       ptr_bmap+offs, bm_wid)
     while bm_lns--                              ' loop if there're more lines
 #endif
 
