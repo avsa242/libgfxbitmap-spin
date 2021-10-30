@@ -5,7 +5,7 @@
     Description: Library of generic bitmap-oriented graphics rendering routines
     Copyright (c) 2021
     Started May 19, 2019
-    Updated Oct 24, 2021
+    Updated Oct 30, 2021
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -81,14 +81,9 @@ PUB Box(x0, y0, x1, y1, color, filled) | x, y
                 repeat x from x0 to x1
                     Plot(x, y, color)
 #else
-#ifdef __FLEXSPIN__
-            if x0 => 0 and x0 =< _disp_xmax and y0 => 0 and {
-}           y0 =< _disp_ymax and x1 => 0 and x1 =< _disp_xmax and {
-}           y1 => 0 and y1 =< _disp_ymax
-#else
-            if lookdown(x0: 0.._disp_xmax) and lookdown(y0: 0.._disp_ymax) {
-}           and lookdown(x1: 0.._disp_xmax) and lookdown(y1: 0.._disp_ymax)
-#endif
+            if (x0 => 0) and (x0 =< _disp_xmax) and (y0 => 0) and {
+}           (y0 =< _disp_ymax) and (x1 => 0) and (x1 =< _disp_xmax) and {
+}           (y1 => 0) and (y1 =< _disp_ymax)
 #ifdef GFX_DIRECT
             repeat y from y0 to y1
                 repeat x from x0 to x1
