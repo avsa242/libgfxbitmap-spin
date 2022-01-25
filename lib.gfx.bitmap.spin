@@ -3,9 +3,9 @@
     Filename: library.gfx.bitmap.spin
     Author: Jesse Burt
     Description: Library of generic bitmap-oriented graphics rendering routines
-    Copyright (c) 2021
+    Copyright (c) 2022
     Started May 19, 2019
-    Updated Nov 14, 2021
+    Updated Jan 24, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -58,28 +58,28 @@ PUB Box(x0, y0, x1, y1, color, filled) | x, y
     case filled
         FALSE:
             repeat x from x0 to x1
-                Plot(x, y0, color)
-                Plot(x, y1, color)
+                plot(x, y0, color)
+                plot(x, y1, color)
             repeat y from y0 to y1
-                Plot(x0, y, color)
-                Plot(x1, y, color)
+                plot(x0, y, color)
+                plot(x1, y, color)
         TRUE:
 #ifdef SSD130X
             repeat y from y0 to y1                          ' Temporary for 1bpp drivers
                 repeat x from x0 to x1
-                    Plot(x, y, color)
+                    plot(x, y, color)
 #elseifdef IL38xx
             repeat y from y0 to y1
                 repeat x from x0 to x1
-                    Plot(x, y, color)
+                    plot(x, y, color)
 #elseifdef LEDMATRIX_CHARLIEPLEXED
             repeat y from y0 to y1
                 repeat x from x0 to x1
-                    Plot(x, y, color)
+                    plot(x, y, color)
 #elseifdef HT16K33-ADAFRUIT
             repeat y from y0 to y1
                 repeat x from x0 to x1
-                    Plot(x, y, color)
+                    plot(x, y, color)
 #else
             if (x0 => 0) and (x0 =< _disp_xmax) and (y0 => 0) and {
 }           (y0 =< _disp_ymax) and (x1 => 0) and (x1 =< _disp_xmax) and {
@@ -193,38 +193,6 @@ PUB Circle(x0, y0, radius, color, filled) | x, y, err, cdx, cdy, ht
                 repeat y from -ht to ht-1
                     plot(x0 + x, y0 + y, color)
 
-#ifndef GFX_DIRECT
-PUB Clear{}
-' Clear the display buffer
-#ifdef IL38xx
-    bytefill(_ptr_drawbuffer, _bgcolor, _buff_sz)
-#elseifdef SSD130X
-    bytefill(_ptr_drawbuffer, _bgcolor, _buff_sz)
-#elseifdef SSD1331
-    wordfill(_ptr_drawbuffer, _bgcolor, _buff_sz/2)
-#elseifdef NEOPIXEL
-    longfill(_ptr_drawbuffer, _bgcolor, _buff_sz)
-#elseifdef HT16K33-ADAFRUIT
-    bytefill(_ptr_drawbuffer, _bgcolor, _buff_sz)
-#elseifdef ST7735
-    wordfill(_ptr_drawbuffer, _bgcolor, _buff_sz/2)
-#elseifdef SSD1351
-    wordfill(_ptr_drawbuffer, _bgcolor, _buff_sz/2)
-#elseifdef LEDMATRIX_CHARLIEPLEXED
-    bytefill(_ptr_drawbuffer, _bgcolor, _buff_sz)
-#elseifdef VGABITMAP6BPP
-    bytefill(_ptr_drawbuffer, _bgcolor, _buff_sz)
-#elseifdef HUB75
-    bytefill(_ptr_drawbuffer, _bgcolor, _buff_sz)
-#endif
-#endif
-
-PUB ClearAll{}
-
-'    clearaccel
-    clear{}
-    update{}
-
 PUB Copy(sx, sy, ex, ey, dx, dy) | x, y, tmp
 ' Copy rectangular region at (sx, sy, ex, ey) to (dx, dy)
     repeat y from sy to ey
@@ -293,141 +261,37 @@ PUB FontWidth{}: curr_wid
 #ifndef GFX_DIRECT
 PUB Line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
 ' Draw line from x1, y1 to x2, y2, in color c
-    case x1 == x2 or y1 == y2
-        TRUE:
-            if x1 == x2                     ' X's are the same - use Plot to draw a straight Vertical line
-                repeat sy from y1 to y2
-                    Plot(x1, sy, c)
-            if y1 == y2                     ' Y's are the same - use Plot to draw a straight Horizontal line
-                repeat sx from x1 to x2
-                    Plot(sx, y1, c)
-        FALSE:                              ' Both are different - use Bresenham's line algo. to draw diag. line
-            ddx := ||(x2-x1)
-            ddy := ||(y2-y1)
-            err := ddx-ddy
+    if (x1 == x2) or (y1 == y2)
+        if (x1 == x2)                           ' draw vertical line
+            repeat sy from y1 to y2
+                plot(x1, sy, c)
+        if (y1 == y2)                           ' draw horizontal line
+            repeat sx from x1 to x2
+                plot(sx, y1, c)
+    else                                        ' draw diag. line (Bresenham)
+        ddx := ||(x2-x1)
+        ddy := ||(y2-y1)
+        err := ddx-ddy
 
-            sx := -1
-            if (x1 < x2)
-                sx := 1
+        sx := -1
+        if (x1 < x2)
+            sx := 1
 
-            sy := -1
-            if (y1 < y2)
-                sy := 1
+        sy := -1
+        if (y1 < y2)
+            sy := 1
 
-            repeat until ((x1 == x2) AND (y1 == y2))
-                Plot(x1, y1, c)
-                e2 := err << 1
+        repeat until ((x1 == x2) AND (y1 == y2))
+            plot(x1, y1, c)
+            e2 := err << 1
 
-                if e2 > -ddy
-                    err -= ddy
-                    x1 += sx
+            if e2 > -ddy
+                err -= ddy
+                x1 += sx
 
-                if e2 < ddx
-                    err += ddx
-                    y1 += sy
-#endif
-
-#ifndef GFX_DIRECT
-PUB Plot(x, y, color)
-' Plot pixel at x, y, color c
-#ifdef __FLEXSPIN__
-    ifnot (x => 0 and x =< _disp_xmax) and (y => 0 and y =< _disp_ymax)
-        return
-#else
-    ifnot lookdown(x: 0.._disp_xmax) and lookdown(y: 0.._disp_ymax)
-        return
-#endif
-
-#ifdef IL38xx
-    case color
-        1:
-            byte[_ptr_drawbuffer][(x + y * _disp_width) >> 3] |= $80 >> (x & 7)
-        0:
-            byte[_ptr_drawbuffer][(x + y * _disp_width) >> 3] &= !($80 >> (x & 7))
-        -1:
-            byte[_ptr_drawbuffer][(x + y * _disp_width) >> 3] ^= $80 >> (x & 7)
-        OTHER:
-            return
-#elseifdef SSD130X
-    case color
-        1:
-            byte[_ptr_drawbuffer][x + (y>>3) * _disp_width] |= (|< (y&7))
-        0:
-            byte[_ptr_drawbuffer][x + (y>>3) * _disp_width] &= !(|< (y&7))
-        -1:
-            byte[_ptr_drawbuffer][x + (y>>3) * _disp_width] ^= (|< (y&7))
-        OTHER:
-            return
-#elseifdef SSD1331
-    word[_ptr_drawbuffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
-#elseifdef NEOPIXEL
-    long[_ptr_drawbuffer][x + (y * _disp_width)] := color
-#elseifdef HT16K33-ADAFRUIT
-    x := x + 7
-    x := x // 8
-
-    case color
-        1:
-            byte[_ptr_drawbuffer][y] |= |< x
-        0:
-            byte[_ptr_drawbuffer][y] &= !(|< x)
-        -1:
-            byte[_ptr_drawbuffer][y] ^= |< x
-        OTHER:
-            return
-
-#elseifdef ST7735
-    word[_ptr_drawbuffer][x + (y * _disp_width)] := color
-#elseifdef SSD1351
-    word[_ptr_drawbuffer][x + (y * _disp_width)] := ((color >> 8) & $FF) | ((color << 8) & $FF00)
-#elseifdef LEDMATRIX_CHARLIEPLEXED
-    case color
-        1:
-            byte[_ptr_drawbuffer][x + (y>>3) * _disp_width] |= (|< (y&7))
-        0:
-            byte[_ptr_drawbuffer][x + (y>>3) * _disp_width] &= !(|< (y&7))
-        -1:
-            byte[_ptr_drawbuffer][x + (y>>3) * _disp_width] ^= (|< (y&7))
-        OTHER:
-            return
-#elseifdef VGABITMAP6BPP
-    byte[_ptr_drawbuffer][x + (y * _disp_width)] := (color << 2) | $3
-#elseifdef HUB75
-    byte[_ptr_drawbuffer][x + (y * _disp_width)] := color
-#else
-#warning "No supported display types defined!"
-#endif
-#endif
-
-PUB Point(x, y): pix_clr
-' Get color of pixel at x, y
-    x := 0 #> x <# _disp_xmax
-    y := 0 #> y <# _disp_ymax
-
-#ifdef IL38xx
-    return byte[_ptr_drawbuffer][(x + y * _disp_width) >> 3]
-#elseifdef SSD130X
-    return (byte[_ptr_drawbuffer][(x + (y >> 3) * _disp_width)] & (1 << (y & 7)) <> 0) * -1
-#elseifdef SSD1331
-    return word[_ptr_drawbuffer][x + (y * _disp_width)]
-#elseifdef NEOPIXEL
-    return long[_ptr_drawbuffer][x + (y * _disp_width)]
-#elseifdef HT16K33-ADAFRUIT
-    x := x + 7
-    x := x // 8
-    return byte[_ptr_drawbuffer][y + (x >> 3) * _disp_width]
-#elseifdef ST7735
-    return word[_ptr_drawbuffer][x + (y * _disp_width)]
-#elseifdef SSD1351
-    return word[_ptr_drawbuffer][x + (y * _disp_width)]
-#elseifdef LEDMATRIX_CHARLIEPLEXED
-    return (byte[_ptr_drawbuffer][(x + (y >> 3) * _disp_width)] & (1 << (y & 7)) <> 0) * -1
-#elseifdef VGABITMAP6BPP
-    return byte[_ptr_drawbuffer][x + (y * _disp_width)] >> 2
-#elseifdef HUB75
-    return byte[_ptr_drawbuffer][x + (y * _disp_width)]
-#else
-#warning "No supported display types defined!"
+            if e2 < ddx
+                err += ddx
+                y1 += sy
 #endif
 
 PUB Position(x, y)
@@ -459,10 +323,8 @@ PUB RGBW8888_RGB32_Brightness(r, g, b, w, level): rgb32
 '       level: 0..100 (%)
     if (level =< 0)
         return 0
-
     elseif (level => 255)
         return RGBW8888_RGB32(r, g, b, w)
-
     else
         r := r * level / 255                    ' Apply level to RGBW
         g := g * level / 255
@@ -575,32 +437,6 @@ PUB TextRows{}: rows
 ' Returns number of displayable text rows, based on set display height, font height, and scale
     return (_disp_height / _charcell_h) / _fnt_scl
 
-PRI memFill(xs, ys, val, count)
-' Fill region of display buffer memory
-'   xs, ys: Start of region
-'   val: Color
-'   count: Number of consecutive memory locations to write
-#ifdef IL38xx
-    bytefill(_ptr_drawbuffer + (xs + (ys * _bytesperln)), val, count)
-#elseifdef SSD130X
-    bytefill(_ptr_drawbuffer + (xs + (ys * _bytesperln)), val, count)
-#elseifdef SSD1331
-    wordfill(_ptr_drawbuffer + ((xs << 1) + (ys * _bytesperln)), ((val >> 8) & $FF) | ((val << 8) & $FF00), count)
-#elseifdef NEOPIXEL
-    longfill(_ptr_drawbuffer + ((xs << 1) + (ys * _bytesperln)), ((val >> 8) & $FF) | ((val << 8) & $FF00), count)
-#elseifdef HT16K33-ADAFRUIT
-    bytefill(_ptr_drawbuffer + (xs + (ys * _bytesperln)), val, count)
-#elseifdef ST7735
-    wordfill(_ptr_drawbuffer + ((xs << 1) + (ys * _bytesperln)), val, count)
-#elseifdef SSD1351
-    wordfill(_ptr_drawbuffer + ((xs << 1) + (ys * _bytesperln)), ((val >> 8) & $FF) | ((val << 8) & $FF00), count)
-#elseifdef LEDMATRIX_CHARLIEPLEXED
-    bytefill(ptr_start, val, count)
-#elseifdef VGABITMAP6BPP
-    bytefill(_ptr_drawbuffer + (xs + (ys * _bytesperln)), (val << 2) | $3, count)
-#elseifdef HUB75
-    bytefill(_ptr_drawbuffer + (xs + (ys * _bytesperln)), val, count)
-#endif
 #include "lib.terminal.spin"
 
 DAT
