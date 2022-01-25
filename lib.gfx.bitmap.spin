@@ -5,7 +5,7 @@
     Description: Library of generic bitmap-oriented graphics rendering routines
     Copyright (c) 2022
     Started May 19, 2019
-    Updated Jan 24, 2022
+    Updated Jan 25, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -53,7 +53,7 @@ PUB Box(x0, y0, x1, y1, color, filled) | x, y
 ' Draw a box
 '   x0, y0: Start coordinates x0, y0
 '   x1, y1: End coordinates
-'   color:  Box color
+'   color:  box color
 '   filled: Flag to set whether to fill the box or not
     case filled
         FALSE:
@@ -92,10 +92,10 @@ PUB Box(x0, y0, x1, y1, color, filled) | x, y
                 x := ||(x1-x0)+1
                 if x1 < x0
                     repeat y from y0 to y1
-                        memFill(x1, y, color, x)
+                        memfill(x1, y, color, x)
                 else
                     repeat y from y0 to y1
-                        memFill(x0, y, color, x)
+                        memfill(x0, y, color, x)
             else
                 return FALSE
 #endif
@@ -193,6 +193,7 @@ PUB Circle(x0, y0, radius, color, filled) | x, y, err, cdx, cdy, ht
                 repeat y from -ht to ht-1
                     plot(x0 + x, y0 + y, color)
 
+#ifndef GFX_DIRECT
 PUB Copy(sx, sy, ex, ey, dx, dy) | x, y, tmp
 ' Copy rectangular region at (sx, sy, ex, ey) to (dx, dy)
     repeat y from sy to ey
@@ -208,6 +209,7 @@ PUB Cut(sx, sy, ex, ey, dx, dy) | x, y, tmp
             tmp := point(x, y)
             plot((dx + x)-sx, (dy + y)-sy, tmp)             ' Copy to destination region
             plot(x, y, _bgcolor)                            ' Cut the original region
+#endif
 
 PUB FGColor(col): curr_clr
 ' Set foreground color of subsequent drawing operations
@@ -344,14 +346,16 @@ PUB RGB565_B8(rgb565): b8
 ' Isolate blue component of 16-bit RGB565 color and return value scaled to 8-bit range
     return ((rgb565 & $1F) * 527 + 23 ) >> 6
 
+#ifndef GFX_DIRECT
 PUB Scale(sx, sy, ex, ey, offsx, offsy, size) | x, y, dx, dy, in
 ' Scale a region of the display up by size
     repeat y from sy to ey
         repeat x from sx to ex
-            in := Point(x, y)
+            in := point(x, y)
             dx := offsx + (x*size)-(sx*size)
             dy := offsy + (y*size)-(sy*size)
-            Box(dx, dy, dx + size, dy + size, in, TRUE)
+            box(dx, dy, dx + size, dy + size, in, TRUE)
+#endif
 
 #ifndef GFX_DIRECT
 PUB ScrollDown(sx, sy, ex, ey) | scr_width, src, dest, x, y
