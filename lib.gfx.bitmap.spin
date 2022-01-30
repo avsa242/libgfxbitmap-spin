@@ -5,7 +5,7 @@
     Description: Library of generic bitmap-oriented graphics rendering routines
     Copyright (c) 2022
     Started May 19, 2019
-    Updated Jan 25, 2022
+    Updated Jan 30, 2022
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -14,7 +14,16 @@
 
 VAR
 
-    ' font-related
+    { display buffer and dimensions }
+    long _ptr_drawbuffer
+    long _buff_sz
+    long _bytesperln
+    long _disp_width, _disp_height, _disp_xmax, _disp_ymax
+
+    { current draw color }
+    long _fgcolor, _bgcolor
+
+    { font parameters }
     long _char_attrs
     long _font_width, _font_height, _font_addr, _fnt_scl
     word _charpx_xmax, _charpx_ymax
@@ -22,9 +31,6 @@ VAR
     byte _charcell_w, _charcell_h
     byte _charcell_xmax, _charcell_ymax
     byte _char_hspace, _char_vspace
-
-    ' current draw color
-    long _fgcolor, _bgcolor
 
 PUB BGColor(col): curr_clr
 ' Set background color for subsequent drawing
