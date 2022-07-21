@@ -10,7 +10,7 @@
     --------------------------------------------
 }
 
-#include "lib.terminal.spin2"                   ' for PrintF(), Str(), etc
+#include "terminal.common.spin2h"               ' for PrintF(), Str(), etc
 
 VAR
 

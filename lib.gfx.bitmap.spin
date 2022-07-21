@@ -10,7 +10,7 @@
     --------------------------------------------
 }
 
-#include "terminal-common.spinh"                ' for PrintF(), Str(), etc
+#include "terminal.common.spinh"                ' for PrintF(), Str(), etc
 
 VAR
 
