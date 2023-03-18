@@ -3,9 +3,9 @@
     Filename: graphics.common.spinh
     Author: Jesse Burt
     Description: Generic bitmap-oriented graphics rendering routines
-    Copyright (c) 2022
+    Copyright (c) 2023
     Started May 19, 2019
-    Updated Dec 30, 2022
+    Updated Mar 18, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -79,9 +79,9 @@ PUB box(x0, y0, x1, y1, color, filled) | x, y
                 repeat x from x0 to x1
                     plot(x, y, color)
 #else
-            if (x0 => 0) and (x0 =< _disp_xmax) and (y0 => 0) and {
-}           (y0 =< _disp_ymax) and (x1 => 0) and (x1 =< _disp_xmax) and {
-}           (y1 => 0) and (y1 =< _disp_ymax)
+            if  (x0 => 0) and (x0 =< _disp_xmax) and (y0 => 0) and {
+}               (y0 =< _disp_ymax) and (x1 => 0) and (x1 =< _disp_xmax) and {
+}               (y1 => 0) and (y1 =< _disp_ymax)
 #ifdef GFX_DIRECT
             repeat y from y0 to y1
                 repeat x from x0 to x1
@@ -250,9 +250,8 @@ PUB font_scl(fntscale): curr_scl
 PUB fontsize = font_sz
 PUB font_sz(width, height)
 ' Set expected dimensions of font glyphs, in pixels
-'   NOTE: This doesn't have to be the same as the size of the font glyphs.
-'       e.g., if you have a 5x8 font, you may want to set the width to 6 or 8.
-'       This will affect the number of text columns
+'   NOTE: This has a direct impact on the number of text columns and rows
+'   NOTE: font_spacing() should be called before calling this method
     _font_width := width
     _font_height := height
     _charcell_w := (_font_width + _char_hspace) ' calc overall character cell
@@ -312,8 +311,8 @@ PUB line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
 PUB position = pos_xy
 PUB pos_xy(x, y)
 ' Set text draw position, in character-cell col and row
-    x := 0 #> x <# _charcell_xmax               ' clamp to min/max coordinates
-    y := 0 #> y <# _charcell_ymax
+    x := 0 #> x <# text_cols{}-1                ' clamp to min/max coordinates
+    y := 0 #> y <# text_rows{}-1
     _charpx_x := (x * _charcell_w) * _fnt_scl   ' calc pixel position:
     _charpx_y := (y * _charcell_h) * _fnt_scl   ' char cell coords * font dims
 
@@ -321,14 +320,14 @@ PUB r5g6b5_rgb565(r, g, b): rgb565
 ' Return 16-bit color in RGB565 format, given red (5), green (6), blue (5) components
     return ((r << 11) | (g << 5) | b)
 
-PUB rgb222_RGB6(r, g, b)
+PUB rgb222_rgb6(r, g, b)
 ' Return 6-bit color from discrete Red, Green, Blue color components
 '   Valid values:
 '       r, g, b: 0..3
 '   NOTE: The least-significant two bits are a requirement of the 6bpp VGA display driver
     return ((((r <# 3) #> 0) << 6) | (((g <# 3) #> 0) << 4) | (((b <# 3) #> 0) << 2) | $3)
 
-PUB RGBW8888_RGB32(r, g, b, w): rgb32
+PUB rgbw8888_rgb32(r, g, b, w): rgb32
 ' Return 32-bit long from discrete Red, Green, Blue, White color components (values 0..255)
     rgb32.byte[3] := r
     rgb32.byte[2] := g
@@ -461,12 +460,12 @@ PUB set_dims(width, height)
 PUB textcols = text_cols
 PUB text_cols{}: cols
 ' Returns number of displayable text columns, based on set display width, font width, and scale
-    return (_disp_width / _charcell_w) / _fnt_scl
+    return _charcell_xmax / _fnt_scl
 
 PUB textrows = text_rows
 PUB text_rows{}: rows
 ' Returns number of displayable text rows, based on set display height, font height, and scale
-    return (_disp_height / _charcell_h) / _fnt_scl
+    return _charcell_ymax / _fnt_scl
 
 DAT
 {
