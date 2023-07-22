@@ -5,7 +5,7 @@
     Description: Generic bitmap-oriented graphics rendering routines (P2 version)
     Copyright (c) 2023
     Started May 19, 2019
-    Updated Mar 18, 2023
+    Updated Jul 22, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -30,7 +30,7 @@ VAR
 
     { font parameters }
     long _char_attrs
-    long _font_width, _font_height, _font_addr, _fnt_scl
+    long _font_width, _font_height, _font_addr, _fnt_xscl, _fnt_yscl
     word _charpx_xmax, _charpx_ymax
     word _charpx_x, _charpx_y
     byte _charcell_w, _charcell_h
@@ -107,8 +107,8 @@ PUB putchar(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, last_gly
 ' Write a character to the display
     last_glyph_col := _font_width-1             ' last column of pixels in font
     last_glyph_row := _font_height-1            '   definition
-    char_wid := _charcell_w * _fnt_scl          ' scaled character dimensions
-    char_ht := _charcell_h * _fnt_scl           '
+    char_wid := _charcell_w * _fnt_xscl          ' scaled character dimensions
+    char_ht := _charcell_h * _fnt_yscl           '
 
     case ch
         LF:                                     ' line feed
@@ -127,30 +127,31 @@ PUB putchar(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, last_gly
             return
         32..127:                                ' printable characters
             ch <<= 3                            ' char position in font table
-            case _fnt_scl
-                0, 1:                           ' no scaling applied
-                    repeat glyph_col from 0 to last_glyph_col
-                        xs := _charpx_x + glyph_col  ' x-coord to draw dot from font
-                        glyph := ch + glyph_col ' point to current glyph data
-                        repeat glyph_row from 0 to last_glyph_row
-                            if byte[_font_addr][glyph] & decod(glyph_row)
-                                plot(xs, _charpx_y + glyph_row, _fgcolor)
-                            else
-                                if (_char_attrs & DRAWBG)
-                                    plot(xs, _charpx_y + glyph_row, _bgcolor)
-                2..8:                           ' scale 2..8x
-                    repeat glyph_col from 0 to last_glyph_col
-                        xs := _charpx_x + (glyph_col * _fnt_scl)
-                        xe := xs + _fnt_scl
-                        glyph := ch + glyph_col ' offs. in glyph definition
-                        repeat glyph_row from 0 to last_glyph_row
-                            ys := _charpx_y + (glyph_row * _fnt_scl)
-                            ye := ys + _fnt_scl
-                            if byte[_font_addr][glyph] & decod(glyph_row)
-                                box(xs, ys, xe, ye, _fgcolor, true)
-                            else
-                                if (_char_attrs & DRAWBG)
-                                    box(xs, ys, xe, ye, _bgcolor, true)
+            if ( (_fnt_xscl == 1) and (_fnt_yscl == 1) )
+                { no scaling; render font 1:1 }
+                repeat glyph_col from 0 to last_glyph_col
+                    xs := _charpx_x + glyph_col  ' x-coord to draw dot from font
+                    glyph := ch + glyph_col ' point to current glyph data
+                    repeat glyph_row from 0 to last_glyph_row
+                        if byte[_font_addr][glyph] & decod(glyph_row)
+                            plot(xs, _charpx_y + glyph_row, _fgcolor)
+                        else
+                            if (_char_attrs & DRAWBG)
+                                plot(xs, _charpx_y + glyph_row, _bgcolor)
+            else
+                { scale font rendering up by an integer factor (x, y independently) }
+                repeat glyph_col from 0 to last_glyph_col
+                    xs := _charpx_x + (glyph_col * _fnt_xscl)
+                    xe := xs + _fnt_xscl
+                    glyph := ch + glyph_col ' offs. in glyph definition
+                    repeat glyph_row from 0 to last_glyph_row
+                        ys := _charpx_y + (glyph_row * _fnt_yscl)
+                        ye := ys + _fnt_yscl
+                        if byte[_font_addr][glyph] & decod(glyph_row)
+                            box(xs, ys, xe, ye, _fgcolor, true)
+                        else
+                            if (_char_attrs & DRAWBG)
+                                box(xs, ys, xe, ye, _bgcolor, true)
 
             _charpx_x += char_wid               ' inc column after rendering
             if _charpx_x > _charpx_xmax         ' if last column reached,
@@ -247,15 +248,12 @@ PUB font_height(): curr_ht
     return _font_height
 
 PUB fontscale = font_scl
-PUB font_scl(fntscale): curr_scl
+PUB font_scl(x, y): curr_scl
 ' Set font rendering scale factor
 '   Valid values: 1..8
 '   Any other value returns the current scale
-    case fntscale
-        1..8:
-            _fnt_scl := fntscale
-        other:
-            return _fnt_scl
+    _fnt_xscl := 1 #> x <# 8
+    _fnt_yscl := 1 #> y <# 8
 
 PUB fontsize = font_sz
 PUB font_sz(width, height)
@@ -323,8 +321,8 @@ PUB pos_xy(x, y)
 ' Set text draw position, in character-cell col and row
     x := 0 #> x <# text_cols()-1                ' clamp to min/max coordinates
     y := 0 #> y <# text_rows()-1
-    _charpx_x := (x * _charcell_w) * _fnt_scl   ' calc pixel position:
-    _charpx_y := (y * _charcell_h) * _fnt_scl   ' char cell coords * font dims
+    _charpx_x := (x * _charcell_w) * _fnt_xscl   ' calc pixel position:
+    _charpx_y := (y * _charcell_h) * _fnt_yscl   ' char cell coords * font dims
 
 PUB r5g6b5_rgb565(r, g, b): rgb565
 ' Return 16-bit color in RGB565 format, given red (5), green (6), blue (5) components
@@ -504,12 +502,12 @@ PUB set_dims(width, height)
 PUB textcols = text_cols
 PUB text_cols(): cols
 ' Returns number of displayable text columns, based on set display width, font width, and scale
-    return _charcell_xmax / _fnt_scl
+    return _charcell_xmax / _fnt_xscl
 
 PUB textrows = text_rows
 PUB text_rows(): rows
 ' Returns number of displayable text rows, based on set display height, font height, and scale
-    return _charcell_ymax / _fnt_scl
+    return _charcell_ymax / _fnt_yscl
 
 DAT
 {
