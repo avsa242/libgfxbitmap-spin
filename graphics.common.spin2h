@@ -578,7 +578,7 @@ PUB scroll_up_fs(px) | max_pg, y, x, fb_off
                     byte[_ptr_drawbuffer][fb_off + x] |= (byte[_ptr_drawbuffer] ...
                                                          [((y+1) * _disp_width) + x] & 1) << 7
 #else
-    repeat char_ht                              '   scroll up one text row
+    repeat px                                   '   scroll up one text row
         scrollup(0, 0, _disp_xmax, _disp_ymax)
 #endif
 #endif
