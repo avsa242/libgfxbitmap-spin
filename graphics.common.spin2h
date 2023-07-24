@@ -5,7 +5,7 @@
     Description: Generic bitmap-oriented graphics rendering routines (P2 version)
     Copyright (c) 2023
     Started May 19, 2019
-    Updated Jul 23, 2023
+    Updated Jul 24, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -495,10 +495,10 @@ PUB scroll_down(sx, sy, ex, ey) | scr_width, src, dest, x, y
 #endif
 
 #ifndef GFX_DIRECT
-#ifdef 1BPP
 PUB scroll_down_fs(px) | max_pg, y, x, fb_off
 ' Scroll down full screen (1bpp displays only)
 '   px: number of rows or lines to scroll
+#ifdef 1BPP
     px := px <# _disp_height                    ' clamp scroll length to display height
     max_pg := (_disp_height / 8)                ' get # of pages from set display height
     repeat px
@@ -512,6 +512,9 @@ PUB scroll_down_fs(px) | max_pg, y, x, fb_off
                     { don't try to copy pixels from before the first page }
                     byte[_ptr_drawbuffer][fb_off + x] |= (byte[_ptr_drawbuffer] ...
                                                          [((y-1) * _disp_width) + x ] >> 7) & 1
+#else
+    repeat px
+        scroll_down(0, 0, _disp_xmax, _disp_ymax)
 #endif
 #endif
 
