@@ -9,6 +9,11 @@
     See end of file for terms of use.
     --------------------------------------------
 }
+#ifndef GFX_DIRECT
+#ifndef putchar
+#define putchar putchar_90deg
+#endif
+#endif
 
 #include "terminal.common.spin2h"               ' for printf(), puts(), etc
 
@@ -74,16 +79,11 @@ PUB box(x0, y0, x1, y1, color, filled=FALSE) | x, y
                 repeat x from x0 to x1
                     plot(x, y, color)
 #else
-            if  (x0 >= 0) and (x0 <= _disp_xmax) and (y0 >= 0) and {
-}               (y0 <= _disp_ymax) and (x1 >= 0) and (x1 <= _disp_xmax) and {
-}               (y1 >= 0) and (y1 <= _disp_ymax)
-#ifdef GFX_DIRECT
-            repeat y from y0 to y1
-                repeat x from x0 to x1
-                    plot(x, y, color)
-#else
+            if (    (x0 >= 0) and (x0 <= _disp_xmax) and (y0 >= 0) and ...
+                    (y0 <= _disp_ymax) and (x1 >= 0) and (x1 <= _disp_xmax) and ...
+                    (y1 >= 0) and (y1 <= _disp_ymax) )
                 x := abs(x1-x0)+1
-                if x1 < x0
+                if ( x1 < x0 )
                     repeat y from y0 to y1
                         memfill(x1, y, color, x)
                 else
@@ -91,7 +91,6 @@ PUB box(x0, y0, x1, y1, color, filled=FALSE) | x, y
                         memfill(x0, y, color, x)
             else
                 return FALSE
-#endif
 #endif
 #endif
 
@@ -166,9 +165,6 @@ PUB putchar_0deg(ch) | p, gl_row, gl_col, last_glcol, last_glrow, char_wid, char
 #endif
 
 #ifndef GFX_DIRECT
-#ifndef putchar
-#define putchar putchar_90deg
-#endif
 PUB putchar_90deg(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, last_glyph_row, glyph, char_ht, char_wid
 ' Low-level character rendering routine
 '   For font file definitions with these characteristics:
@@ -215,7 +211,7 @@ PUB putchar_90deg(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, la
 #endif
             glyph := ch + glyph_col             ' point to current glyph data
             repeat glyph_row from 0 to last_glyph_row
-                if ( byte[_font_addr][glyph] & decod(glyph_row) )
+                if ( byte[_font_addr][glyph] & (1 << glyph_row) )
                     plot(   xs, ...
                             _charpx_y + glyph_row, ...
                             _fgcolor )
@@ -347,7 +343,6 @@ PUB fontscale = font_scl
 PUB font_scl(x, y): curr_scl
 ' Set font rendering scale factor
 '   Valid values: 1..8
-'   Any other value returns the current scale
     _fnt_xscl := 1 #> x <# 8
     _fnt_yscl := 1 #> y <# 8
 
@@ -417,8 +412,8 @@ PUB pos_xy(x, y)
 ' Set text draw position, in character-cell col and row
     x := 0 #> x <# text_cols()-1                ' clamp to min/max coordinates
     y := 0 #> y <# text_rows()-1
-    _charpx_x := (x * _charcell_w) * _fnt_xscl   ' calc pixel position:
-    _charpx_y := (y * _charcell_h) * _fnt_yscl   ' char cell coords * font dims
+    _charpx_x := (x * _charcell_w) * _fnt_xscl  ' calc pixel position:
+    _charpx_y := (y * _charcell_h) * _fnt_yscl  ' char cell coords * font dims
 
 PUB r5g6b5_rgb565(r, g, b): rgb565
 ' Return 16-bit color in RGB565 format, given red (5), green (6), blue (5) components
@@ -580,7 +575,7 @@ PUB scroll_up_fs(px) | max_pg, y, x, fb_off
                     byte[_ptr_drawbuffer][fb_off + x] |= (byte[_ptr_drawbuffer] ...
                                                          [((y+1) * _disp_width) + x] & 1) << 7
 #else
-    repeat char_ht                  '   scroll up one text row
+    repeat char_ht                              '   scroll up one text row
         scrollup(0, 0, _disp_xmax, _disp_ymax)
 #endif
 #endif
@@ -610,7 +605,7 @@ PUB text_rows(): rows
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2023 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
