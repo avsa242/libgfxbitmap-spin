@@ -167,10 +167,6 @@ PUB putchar_0deg(ch) | p, gl_row, gl_col, last_glcol, last_glrow, char_wid, char
     if ( _charpx_y > _charpx_ymax )
         _charpx_y -= char_ht                    ' scroll the display up a row if we try to go
         scroll_up_fs(char_ht)                   '   past the end
-#else
-    if ( {(_charpx_x < 0) or} (_charpx_x > _disp_xmax) or ...
-         {(_charpx_y < 0) or} (_charpx_y > _disp_ymax) )
-        return
 #endif
 #endif
 
@@ -265,10 +261,6 @@ PUB putchar_90deg(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, la
     if ( _charpx_y > _charpx_ymax )
         _charpx_y -= char_ht                    ' scroll the display up a row if we try to go
         scroll_up_fs(char_ht)                   '   past the end
-#else
-    if ( (_charpx_x < 0) or (_charpx_x > _disp_xmax) or ...
-         (_charpx_y < 0) or (_charpx_y > _disp_ymax) )
-        return
 #endif
 #endif
 
