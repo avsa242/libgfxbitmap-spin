@@ -5,7 +5,7 @@
     Description: Generic bitmap-oriented graphics rendering routines (P2 version)
     Copyright (c) 2023
     Started May 19, 2019
-    Updated Jul 25, 2023
+    Updated Aug 1, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -96,7 +96,6 @@ PUB box(x0, y0, x1, y1, color, filled=FALSE) | x, y
 PUB tx = putchar
 PUB char = putchar
 
-#ifndef GFX_DIRECT
 PUB putchar_0deg(ch) | p, gl_row, gl_col, last_glcol, last_glrow, char_wid, char_ht
 ' Low-level character rendering routine
 '   For font file definitions with these characteristics:
@@ -168,9 +167,7 @@ PUB putchar_0deg(ch) | p, gl_row, gl_col, last_glcol, last_glrow, char_wid, char
         _charpx_y -= char_ht                    ' scroll the display up a row if we try to go
         scroll_up_fs(char_ht)                   '   past the end
 #endif
-#endif
 
-#ifndef GFX_DIRECT
 PUB putchar_90deg(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, last_glyph_row, glyph, char_ht, char_wid
 ' Low-level character rendering routine
 '   For font file definitions with these characteristics:
@@ -261,7 +258,6 @@ PUB putchar_90deg(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, la
     if ( _charpx_y > _charpx_ymax )
         _charpx_y -= char_ht                    ' scroll the display up a row if we try to go
         scroll_up_fs(char_ht)                   '   past the end
-#endif
 #endif
 
 CON
