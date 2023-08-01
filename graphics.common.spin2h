@@ -354,12 +354,12 @@ PUB font_scl(x, y): curr_scl
     _fnt_yscl := 1 #> y <# 8
 
 PUB fontsize = font_sz
-PUB font_sz(width, height)
+PUB font_sz(w, h)
 ' Set expected dimensions of font glyphs, in pixels
 '   NOTE: This has a direct impact on the number of text columns and rows
 '   NOTE: font_spacing() should be called before calling this method
-    _fnt_width := width
-    _fnt_height := height
+    _fnt_width := w
+    _fnt_height := h
     _fnt_xscl := 1 #> _fnt_xscl
     _fnt_yscl := 1 #> _fnt_yscl
 
@@ -600,12 +600,12 @@ PUB scroll_up_fs(px) | max_pg, y, x, fb_off
 #endif
 #endif
 
-PUB set_dims(width, height)
+PUB set_dims(w, h)
 ' Set display dimensions
-'   width: width of display (X-axis) in pixels
-'   height: height of display (Y-axis) in pixels
-    _disp_width := width
-    _disp_height := height
+'   w: width of display (X-axis) in pixels
+'   h: height of display (Y-axis) in pixels
+    _disp_width := w
+    _disp_height := h
     _disp_xmax := _disp_width - 1
     _disp_ymax := _disp_height - 1
 
