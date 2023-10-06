@@ -5,7 +5,7 @@
     Description: Generic bitmap-oriented graphics rendering routines
     Copyright (c) 2023
     Started May 19, 2019
-    Updated Aug 1, 2023
+    Updated Oct 6, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -381,6 +381,10 @@ PUB font_width{}: curr_wid
 ' Return the set font width
     return _fnt_width
 
+PUB get_address(): addr
+' Get the currently set display buffer address
+    return _ptr_drawbuffer
+
 #ifndef GFX_DIRECT
 PUB line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
 ' Draw line from x1, y1 to x2, y2, in color c
@@ -606,6 +610,11 @@ PUB scroll_up_fs(px) | max_pg, y, x, fb_off
         scrollup(0, 0, _disp_xmax, _disp_ymax)
 #endif
 #endif
+
+PUB address = set_address
+PUB set_address(addr)
+' Set display buffer address
+    _ptr_drawbuffer := addr
 
 PUB set_dims(w, h)
 ' Set display dimensions
