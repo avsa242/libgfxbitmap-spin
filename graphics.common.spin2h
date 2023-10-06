@@ -36,9 +36,9 @@ VAR
     byte _charcell_w, _charcell_h
     byte _charcell_xmax, _charcell_ymax
 
-PUB bgcolor(col): curr_clr
+PUB bgcolor(col)
 ' Set background color for subsequent drawing
-    return _bgcolor := col
+    _bgcolor := col
 
 #ifndef GFX_DIRECT
 PUB bitmap(ptr_bmap, xs, ys, bm_wid, bm_lns) | offs
@@ -328,18 +328,9 @@ PUB cut(sx, sy, ex, ey, dx, dy) | x, y, tmp
             plot(x, y, _bgcolor)                            ' Cut the original region
 #endif
 
-PUB fgcolor(col): curr_clr
+PUB fgcolor(col)
 ' Set foreground color of subsequent drawing operations
-    return _fgcolor := col
-
-PUB fontaddress = font_addr
-PUB font_addr(addr): curr_addr
-' Set address of font definition
-    case addr
-        $0004..$7FFFF:
-            _font_addr := addr
-        OTHER:
-            return _font_addr
+    _fgcolor := col
 
 PUB fontheight = font_height
 PUB font_height(): curr_ht
@@ -644,6 +635,12 @@ PUB set_font(ptr_fnt, ptr_setup)
         set_font_rotation_0deg()
     elseif ( byte[ptr_setup][2] == 90 )
         set_font_rotation_90deg()
+
+PUB fontaddress = font_addr
+PUB font_addr = set_font_addr
+PUB set_font_addr(addr)
+' Set address of font definition
+    _font_addr := addr
 
 PUB set_font_char_range(cmin, cmax)
 ' Set range of ASCII values contained in font
