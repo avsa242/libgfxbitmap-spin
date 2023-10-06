@@ -596,9 +596,15 @@ PUB scroll_up_fs(px) | max_pg, y, x, fb_off
 #endif
 
 PUB address = set_address
-PUB set_address(addr)
+PUB set_address(addr=0)
 ' Set display buffer address
-    _ptr_drawbuffer := addr
+'   addr: address of display buffer to use (or 0 to use the driver's internal buffer)
+    if ( addr == 0 )
+        { use the buffer built-in to the display driver }
+        _ptr_drawbuffer := @_framebuffer
+    else
+        { use an external buffer }
+        _ptr_drawbuffer := addr
 
 PUB set_dims(w, h)
 ' Set display dimensions
