@@ -5,7 +5,7 @@
     Description: Generic bitmap-oriented graphics rendering routines (P2 version)
     Copyright (c) 2023
     Started May 19, 2019
-    Updated Oct 6, 2023
+    Updated Oct 13, 2023
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -56,6 +56,26 @@ PUB bitmap(ptr_bmap, xs, ys, bm_wid, bm_lns) | offs
 }       ptr_bmap+offs, bm_wid)
     while bm_lns--                              ' loop if there're more lines
 #endif
+
+pub bitmap_1bpp(ptr_bmap, x, y, w, h) | bmbytes_ln, b, j, i, row, col
+' Copy a 1-bpp bitmap to the display buffer
+'   ptr_bmap: pointer to bitmap data
+'   (x, y): upper-left corner of bitmap
+'   w: width of bitmap, in pixels
+'   h: height of bitmap, in pixels
+    bmbytes_ln := (w + 7) / 8                   ' bytes per line of the bitmap
+    b := 0
+
+    repeat row from 0 to h-1
+        repeat col from 0 to w-1
+            if ( col & 7 )
+                b <<= 1
+            else
+                b := byte[ptr_bmap][(row * bmbytes_ln) + (col / 8)]
+            if ( b & $80 )
+                plot(x + col, y, 1)
+        y++
+
 
 #ifndef GFX_DIRECT
 PUB box(x0, y0, x1, y1, color, filled=FALSE) | x, y
