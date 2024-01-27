@@ -165,7 +165,9 @@ PUB putchar_0deg(ch) | p, gl_row, gl_col, last_glcol, last_glrow, char_wid, char
         _charpx_y += char_ht                    '   to go past the right edge
     if ( _charpx_y > _charpx_ymax )
         _charpx_y -= char_ht                    ' scroll the display up a row if we try to go
+# ifndef GFX_DIRECT
         scroll_up_fs(char_ht)                   '   past the end
+# endif
 #endif
 
 pub putchar32_0deg(ch) | bpr, lastbyte, p, last_glcol, last_glrow, char_wid, char_ht, rowbyte, bit, gl_row, gl_col
@@ -244,7 +246,9 @@ pub putchar32_0deg(ch) | bpr, lastbyte, p, last_glcol, last_glrow, char_wid, cha
         _charpx_y += char_ht                    '   to go past the right edge
     if ( _charpx_y > _charpx_ymax )
         _charpx_y -= char_ht                    ' scroll the display up a row if we try to go
+# ifndef GFX_DIRECT
         scroll_up_fs(char_ht)                   '   past the end
+# endif
 #endif
 
 PUB putchar_90deg(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, last_glyph_row, glyph, char_ht, char_wid
@@ -336,7 +340,9 @@ PUB putchar_90deg(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, la
         _charpx_y += char_ht                    '   to go past the right edge
     if ( _charpx_y > _charpx_ymax )
         _charpx_y -= char_ht                    ' scroll the display up a row if we try to go
+# ifndef GFX_DIRECT
         scroll_up_fs(char_ht)                   '   past the end
+# endif
 #endif
 
 CON
