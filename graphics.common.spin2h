@@ -1,13 +1,12 @@
 {
-    --------------------------------------------
-    Filename: graphics.common.spin2h
-    Author: Jesse Burt
-    Description: Generic bitmap-oriented graphics rendering routines (P2 version)
-    Copyright (c) 2023
-    Started May 19, 2019
-    Updated Dec 8, 2023
-    See end of file for terms of use.
-    --------------------------------------------
+---------------------------------------------------------------------------------------------------
+    Filename:       graphics.common.spin2h
+    Description:    Generic bitmap-oriented graphics rendering routines
+    Author:         Jesse Burt
+    Started:        May 19, 2019
+    Updated:        Jan 27, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+---------------------------------------------------------------------------------------------------
 }
 
 #include "terminal.common.spin2h"               ' for printf(), puts(), etc
@@ -699,12 +698,15 @@ PUB address = set_address
 PUB set_address(addr=0)
 ' Set display buffer address
 '   addr: address of display buffer to use (or 0 to use the driver's internal buffer)
+#ifndef GFX_DIRECT
+    { only build this if targetting a buffered display; the framebuffer won't exist otherwise }
     if ( addr == 0 )
         { use the buffer built-in to the display driver }
         _ptr_drawbuffer := @_framebuffer
     else
         { use an external buffer }
         _ptr_drawbuffer := addr
+#endif
 
 PUB set_dims(w, h)
 ' Set display dimensions
@@ -777,7 +779,7 @@ PUB text_rows(): rows
 
 DAT
 {
-Copyright 2023 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
