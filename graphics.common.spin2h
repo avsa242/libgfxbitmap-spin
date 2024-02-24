@@ -4,7 +4,7 @@
     Description:    Generic bitmap-oriented graphics rendering routines
     Author:         Jesse Burt
     Started:        May 19, 2019
-    Updated:        Jan 27, 2024
+    Updated:        Feb 24, 2024
     Copyright (c) 2024 - See end of file for terms of use.
 ---------------------------------------------------------------------------------------------------
 }
@@ -115,7 +115,7 @@ PUB box(x0, y0, x1, y1, color, filled=FALSE) | x, y
 PUB tx = putchar
 PUB char = putchar
 
-PUB putchar_0deg(ch) | p, gl_row, gl_col, last_glcol, last_glrow, char_wid, char_ht
+PUB putchar_0deg(ch) | p, gl_row, gl_col, last_glcol, last_glrow, char_wid, char_ht, xs, xe, ys, ye, fws, glrs, fw, fh, cwd, cht, fxs, fys
 ' Low-level character rendering routine
 '   For font file definitions with these characteristics:
 '   * 0 degrees rotation (portrait, top-down)
@@ -135,10 +135,16 @@ PUB putchar_0deg(ch) | p, gl_row, gl_col, last_glcol, last_glrow, char_wid, char
         return
 
     p := _font_addr + (ch * _fnt_height)
-    last_glcol := _fnt_width-1                  ' last column of pixels in font
-    last_glrow := _fnt_height-1                 '   definition
-    char_wid := _charcell_w * _fnt_xscl         ' scaled character dimensions
-    char_ht := _charcell_h * _fnt_yscl          '
+    fw := _fnt_width                            ' copy global vars to locals to reduce hub access
+    fh := _fnt_height                           '   inside loops
+    cwd := _charcell_w
+    cht := _charcell_h
+    fxs := _fnt_xscl
+    fys := _fnt_yscl
+    last_glcol := fw-1                          ' last column of pixels in font
+    last_glrow := fh-1                          '   definition
+    char_wid := cwd * fxs                       ' scaled character dimensions
+    char_ht := cht * fys                        '
 
     if ( _char_attrs & TERMINAL )
         { process control characters, don't draw them }
@@ -157,27 +163,47 @@ PUB putchar_0deg(ch) | p, gl_row, gl_col, last_glcol, last_glrow, char_wid, char
                 _charpx_x := 0                  ' goto first text column
                 return
 
-    { read a glyph in from the font table }
-    repeat gl_row from 0 to last_glrow
-        repeat gl_col from 0 to last_glcol
+    if ( (fxs == 1) and (fys == 1) )
+        { read a glyph in from the font table }
+        repeat gl_row from 0 to last_glrow
+            repeat gl_col from 0 to last_glcol
 #ifdef FNT_GLYPH_REV
-            { reverse byte-order glyphs (MSBit in each glyph word is right edge) }
-            if ( byte[p][gl_row] & (1 << gl_col) )
+                { reverse byte-order glyphs (MSBit in each glyph word is right edge) }
+                if ( byte[p][gl_row] & (1 << gl_col) )
 #else
-            { normal byte-order glyphs (MSBit in each glyph word is left edge) }
-            if ( (byte[p][gl_row] rev 7 ) & (1 << gl_col) )
+                { normal byte-order glyphs (MSBit in each glyph word is left edge) }
+                if ( (byte[p][gl_row] >< 8 ) & (1 << gl_col) )
 #endif
-                plot(   _charpx_x + gl_col, ...
-                        _charpx_y + gl_row, ...
-                        _fgcolor )
-            else
-                { draw the background color for unset pixels if the DRAWBG attribute is set
-                    ( see char_attr() )
-                otherwise, unset pixels will be ignored (effectively transparent) }
-                if ( _char_attrs & DRAWBG )
                     plot(   _charpx_x + gl_col, ...
                             _charpx_y + gl_row, ...
-                            _bgcolor )
+                            _fgcolor )
+                else
+                    { draw the background color for unset pixels if the DRAWBG attribute is set
+                        ( see char_attr() )
+                    otherwise, unset pixels will be ignored (effectively transparent) }
+                    if ( _char_attrs & DRAWBG )
+                        plot(   _charpx_x + gl_col, ...
+                                _charpx_y + gl_row, ...
+                                _bgcolor )
+    else
+        fws := fw * fxs
+        repeat gl_row from 0 to last_glrow
+            ys := _charpx_y + (gl_row * fys)
+            ye := (ys + fys)-1
+            repeat gl_col from 0 to last_glcol
+#ifdef FNT_GLYPH_REV
+                xs := _charpx_x + fws - (gl_col * fxs)
+                xe := (xs + fxs)-1
+                { reverse byte-order glyphs (MSBit in each glyph word is right edge) }
+                if ( byte[p][gl_row] & (1 << gl_col) )
+#else
+                { normal byte-order glyphs (MSBit in each glyph word is left edge) }
+                if ( (byte[p][gl_row] >< 8 ) & (1 << gl_col) )
+#endif
+                    box(xs, ys, xe, ye, _fgcolor, true)
+                else
+                    if ( _char_attrs & DRAWBG )
+                        box(xs, ys, xe, ye, _bgcolor, true)
 
     _charpx_x += char_wid                       ' goto next column
 
