@@ -1,12 +1,12 @@
 {
----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
     Filename:       graphics.common.spinh
     Description:    Generic bitmap-oriented graphics rendering routines
     Author:         Jesse Burt
     Started:        May 19, 2019
-    Updated:        Feb 24, 2024
+    Updated:        Aug 20, 2024
     Copyright (c) 2024 - See end of file for terms of use.
----------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
 }
 
 #include "terminal.common.spinh"                ' for printf(), puts(), etc
@@ -35,9 +35,11 @@ VAR
     byte _charcell_w, _charcell_h
     byte _charcell_xmax, _charcell_ymax
 
+
 PUB bgcolor(col)
 ' Set background color for subsequent drawing
     _bgcolor := col
+
 
 #ifndef GFX_DIRECT
 PUB bitmap(ptr_bmap, xs, ys, bm_wid, bm_lns) | offs
@@ -51,10 +53,10 @@ PUB bitmap(ptr_bmap, xs, ys, bm_wid, bm_lns) | offs
         '   then copy the bitmap one line at a time,
         '   using the display's defined native word size
         offs := ((ys++ * _bytesperln) + xs)     ' increment Y start
-        MEMMV_NATIVE(_ptr_drawbuffer+offs <# _ptr_drawbuffer+_buff_sz, {
-}       ptr_bmap+offs, bm_wid)
-    while bm_lns--                              ' loop if there're more lines
+        MEMMV_NATIVE(_ptr_drawbuffer+offs <# _ptr_drawbuffer+_buff_sz, ptr_bmap+offs, bm_wid)
+    while (bm_lns--)                            ' loop if there're more lines
 #endif
+
 
 #ifndef GFX_DIRECT
 PUB box(x0, y0, x1, y1, color, filled) | x, y
@@ -377,6 +379,7 @@ PUB putchar_90deg(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, la
 # endif
 #endif
 
+
 CON
 
     { character attributes }
@@ -387,6 +390,7 @@ PUB charattrs = char_attrs
 PUB char_attrs(attrs)
 ' Set character attributes
     _char_attrs := attrs
+
 
 PUB circle(x0, y0, radius, color, filled) | x, y, err, cdx, cdy, cht
 ' Draw a circle
@@ -427,6 +431,7 @@ PUB circle(x0, y0, radius, color, filled) | x, y, err, cdx, cdy, cht
                 repeat y from -cht to cht-1
                     plot(x0 + x, y0 + y, color)
 
+
 #ifndef GFX_DIRECT
 PUB copy(sx, sy, ex, ey, dx, dy) | x, y, tmp
 ' Copy rectangular region at (sx, sy, ex, ey) to (dx, dy)
@@ -434,6 +439,7 @@ PUB copy(sx, sy, ex, ey, dx, dy) | x, y, tmp
         repeat x from sx to ex
             tmp := point(x, y)
             plot((dx + x)-sx, (dy + y)-sy, tmp)
+
 
 PUB cut(sx, sy, ex, ey, dx, dy) | x, y, tmp
 ' Copy rectangular region at (sx, sy, ex, ey) to (dx, dy)
@@ -445,14 +451,17 @@ PUB cut(sx, sy, ex, ey, dx, dy) | x, y, tmp
             plot(x, y, _bgcolor)                            ' Cut the original region
 #endif
 
+
 PUB fgcolor(col)
 ' Set foreground color of subsequent drawing operations
     _fgcolor := col
 
+
 PUB fontheight = font_height
-PUB font_height{}: curr_ht
+PUB font_height(): curr_ht
 ' Return the set font height
     return _fnt_height
+
 
 PUB fontscale = font_scl
 PUB font_scl(x, y): curr_scl
@@ -460,6 +469,7 @@ PUB font_scl(x, y): curr_scl
 '   Valid values: 1..8
     _fnt_xscl := 1 #> x <# 8
     _fnt_yscl := 1 #> y <# 8
+
 
 PUB fontsize = font_sz
 PUB font_sz(w, h)
@@ -478,20 +488,24 @@ PUB font_sz(w, h)
     _charcell_xmax := (_disp_width / _charcell_w)
     _charcell_ymax := (_disp_height / _charcell_h)
 
+
 PUB fontspacing = font_spacing
 PUB font_spacing(h, v)
 ' Set spacing between character cells (horizontally, vertically)
     _char_hspace := h
     _char_vspace := v
 
+
 PUB fontwidth = font_width
-PUB font_width{}: curr_wid
+PUB font_width(): curr_wid
 ' Return the set font width
     return _fnt_width
+
 
 PUB get_address(): addr
 ' Get the currently set display buffer address
     return _ptr_drawbuffer
+
 
 #ifndef GFX_DIRECT
 PUB line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
@@ -529,6 +543,7 @@ PUB line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
                 y1 += sy
 #endif
 
+
 PUB position = pos_xy
 PUB pos_xy(x, y)
 ' Set text draw position, in character-cell col and row
@@ -544,9 +559,11 @@ PUB pos_xy(x, y)
     _charpx_y := (y * _charcell_h) * _fnt_yscl  ' char cell coords * font dims
 #endif
 
+
 PUB r5g6b5_rgb565(r, g, b): rgb565
 ' Return 16-bit color in RGB565 format, given red (5), green (6), blue (5) components
     return ((r << 11) | (g << 5) | b)
+
 
 PUB rgb222_rgb6(r, g, b)
 ' Return 6-bit color from discrete Red, Green, Blue color components
@@ -555,12 +572,14 @@ PUB rgb222_rgb6(r, g, b)
 '   NOTE: The least-significant two bits are a requirement of the 6bpp VGA display driver
     return ((((r <# 3) #> 0) << 6) | (((g <# 3) #> 0) << 4) | (((b <# 3) #> 0) << 2) | $3)
 
+
 PUB rgbw8888_rgb32(r, g, b, w): rgb32
 ' Return 32-bit long from discrete Red, Green, Blue, White color components (values 0..255)
     rgb32.byte[3] := r
     rgb32.byte[2] := g
     rgb32.byte[1] := b
     rgb32.byte[0] := w
+
 
 PUB rgbw8888_rgb32_brightness(r, g, b, w, level): rgb32
 ' Return 32-bit long from discrete Red, Green, Blue, White color components
@@ -579,29 +598,36 @@ PUB rgbw8888_rgb32_brightness(r, g, b, w, level): rgb32
         w := w * level / 255
         return RGBW8888_RGB32(r, g, b, w)
 
+
 PUB rgb565_r5(rgb565): r5
 ' Isolate 5-bit red component of 16-bit RGB565 color
     return ((rgb565 & $F800) >> 11)
+
 
 PUB rgb565_g5(rgb565): g5
 ' Isolate 6-bit green component of 16-bit RGB565 color
     return ((rgb565 & $07E0) >> 5)
 
+
 PUB rgb565_b5(rgb565): b5
 ' Isolate 5-bit blue component of 16-bit RGB565 color
     return (rgb565 & $001F)
+
 
 PUB rgb565_r8(rgb565): r8
 ' Isolate red component of 16-bit RGB565 color and return value scaled to 8-bit range
     return (((rgb565 & $F800) >> 11) * 527 + 23 ) >> 6
 
+
 PUB rgb565_g8(rgb565): g8
 ' Isolate green component of 16-bit RGB565 color and return value scaled to 8-bit range
     return (((rgb565 & $7E0) >> 5)  * 259 + 33 ) >> 6
 
+
 PUB rgb565_b8(rgb565): b8
 ' Isolate blue component of 16-bit RGB565 color and return value scaled to 8-bit range
     return ((rgb565 & $1F) * 527 + 23 ) >> 6
+
 
 #ifndef GFX_DIRECT
 PUB scale(sx, sy, ex, ey, offsx, offsy, size) | x, y, dx, dy, in
@@ -613,6 +639,7 @@ PUB scale(sx, sy, ex, ey, offsx, offsy, size) | x, y, dx, dy, in
             dy := offsy + (y*size)-(sy*size)
             box(dx, dy, dx + size, dy + size, in, TRUE)
 #endif
+
 
 #ifndef GFX_DIRECT
 PUB scrolldown = scroll_down
@@ -629,6 +656,7 @@ PUB scroll_down(sx, sy, ex, ey) | scr_width, src, dest, x, y
         dest := sx + ((y+1) * _disp_width) * BYTESPERPX
         MEMMV_NATIVE(_ptr_drawbuffer + dest, _ptr_drawbuffer + src, scr_width)
 #endif
+
 
 #ifndef GFX_DIRECT
 PUB scroll_down_fs(px) | max_pg, y, x, fb_off
@@ -654,6 +682,7 @@ PUB scroll_down_fs(px) | max_pg, y, x, fb_off
 #endif
 #endif
 
+
 PUB scrollleft = scroll_left
 PUB scroll_left(sx, sy, ex, ey) | scr_width, src, dest, y, yoffs
 ' Scroll a region of the display left by 1 pixel
@@ -667,6 +696,7 @@ PUB scroll_left(sx, sy, ex, ey) | scr_width, src, dest, y, yoffs
         dest := ((0 #> (sx-1)) + yoffs) * BYTESPERPX
         MEMMV_NATIVE(_ptr_drawbuffer+dest, _ptr_drawbuffer+src, scr_width)
 #endif
+
 
 PUB scrollright = scroll_right
 PUB scroll_right(sx, sy, ex, ey) | scr_width, src, dest, y, yoffs
@@ -682,6 +712,7 @@ PUB scroll_right(sx, sy, ex, ey) | scr_width, src, dest, y, yoffs
         MEMMV_NATIVE(_ptr_drawbuffer + dest, _ptr_drawbuffer + src, scr_width)
 #endif
 
+
 PUB scrollup = scroll_up
 PUB scroll_up(sx, sy, ex, ey) | scr_width, src, dest, x, y
 ' Scroll a region of the display up by 1 pixel
@@ -695,6 +726,7 @@ PUB scroll_up(sx, sy, ex, ey) | scr_width, src, dest, x, y
         MEMMV_NATIVE(_ptr_drawbuffer + dest, _ptr_drawbuffer + src, scr_width)
 #endif
 #endif
+
 
 #ifndef GFX_DIRECT
 PUB scroll_up_fs(px) | max_pg, y, x, fb_off
@@ -719,6 +751,7 @@ PUB scroll_up_fs(px) | max_pg, y, x, fb_off
 #endif
 #endif
 
+
 PUB address = set_address
 PUB set_address(addr=0)
 ' Set display buffer address
@@ -733,6 +766,7 @@ PUB set_address(addr=0)
         _ptr_drawbuffer := addr
 #endif
 
+
 PUB set_dims(w, h)
 ' Set display dimensions
 '   w: width of display (X-axis) in pixels
@@ -745,6 +779,7 @@ PUB set_dims(w, h)
     { update the buffer size, and the bytes per line }
     _buff_sz := (_disp_width * _disp_height) * BYTESPERPX
     _bytesperln := _disp_width * BYTESPERPX
+
 
 PUB set_font(ptr_fnt, ptr_setup)
 ' Setup the font and character routines
@@ -769,36 +804,43 @@ PUB set_font(ptr_fnt, ptr_setup)
     elseif ( byte[ptr_setup][2] == 90 )
         set_font_rotation_90deg()
 
+
 PUB fontaddress = font_addr
 PUB font_addr = set_font_addr
 PUB set_font_addr(addr)
 ' Set address of font definition
     _font_addr := addr
 
+
 PUB set_font_char_range(cmin, cmax)
 ' Set range of ASCII values contained in font
     _fnt_cmin := cmin
     _fnt_cmax := cmax
 
+
 PUB set_font_rotation_0deg()
 ' Set putchar function to 0-degree rotated type
     putchar := @putchar_0deg
+
 
 PUB set_font_rotation_90deg()
 ' Set putchar function to 90-degree rotated type
     putchar := @putchar_90deg
 
+
 PUB set_putchar(ptr)
 ' Set a custom putchar function
     putchar := ptr
 
+
 PUB textcols = text_cols
-PUB text_cols{}: cols
+PUB text_cols(): cols
 ' Returns number of displayable text columns, based on set display width, font width, and scale
     return _charcell_xmax / _fnt_xscl
 
+
 PUB textrows = text_rows
-PUB text_rows{}: rows
+PUB text_rows(): rows
 ' Returns number of displayable text rows, based on set display height, font height, and scale
     return _charcell_ymax / _fnt_yscl
 

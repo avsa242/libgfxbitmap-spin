@@ -7,7 +7,7 @@ This is a P8X32A/Propeller, P2X8C4M64P/Propeller 2 library for generic bitmap-or
 
 * Line, Circle (not ellipse), Box, Plot primitives
 * Text rendering (uses terminal.common.spin[2]h to provide str(), hex(), bin(), printf(), etc)
-* Text: 0 or 90 degree-rotated font bitmaps
+* Text: 0 or 90 degree-rotated font bitmaps, up to 32px wide glyphs
 * Text: Character cell-level or pixel-level positioning (build-time)
 * Text: Internal or custom user-provided putchar function pointer
 * Copy bitmap to display buffer, with optional offset
