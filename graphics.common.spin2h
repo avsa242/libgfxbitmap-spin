@@ -791,7 +791,7 @@ PUB set_dims(w, h)
     _disp_ymax := _disp_height - 1
 
     { update the buffer size, and the bytes per line }
-    _buff_sz := (_disp_width * _disp_height) * BYTESPERPX
+    _buff_sz := ( (_disp_width * _disp_height) * BYTESPERPX) / BPPDIV
     _bytesperln := _disp_width * BYTESPERPX
 
 
