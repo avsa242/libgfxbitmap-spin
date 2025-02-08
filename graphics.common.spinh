@@ -4,7 +4,7 @@
     Description:    Generic bitmap-oriented graphics rendering routines
     Author:         Jesse Burt
     Started:        May 19, 2019
-    Updated:        Feb 7, 2025
+    Updated:        Feb 8, 2025
     Copyright (c) 2025 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
@@ -781,7 +781,7 @@ PUB set_dims(w, h)
 
     { update the buffer size, and the bytes per line }
     _buff_sz := ( (_disp_width * _disp_height) * BYTESPERPX) / BPPDIV
-    _bytesperln := _disp_width * BYTESPERPX
+    _bytesperln := (_disp_width * BYTESPERPX) / BPPDIV
 
 
 PUB set_font(ptr_fnt, ptr_setup)
