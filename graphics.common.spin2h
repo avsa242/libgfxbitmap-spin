@@ -4,7 +4,7 @@
     Description:    Generic bitmap-oriented graphics rendering routines
     Author:         Jesse Burt
     Started:        May 19, 2019
-    Updated:        Feb 8, 2025
+    Updated:        Mar 4, 2025
     Copyright (c) 2025 - See end of file for terms of use.
 ---------------------------------------------------------------------------------------------------
 }
@@ -60,7 +60,7 @@ PUB bitmap(ptr_bmap, xs, ys, bm_wid, bm_lns) | offs
     while (--bm_lns)                            ' loop if there're more lines
 #endif
 
-pub bitmap_1bpp(ptr_bmap, x, y, w, h) | bmbytes_ln, b, j, i, row, col
+PUB bitmap_1bpp(ptr_bmap, x, y, w, h) | bmbytes_ln, b, j, i, row, col
 ' Copy a 1-bpp bitmap to the display buffer
 '   ptr_bmap: pointer to bitmap data
 '   (x, y): upper-left corner of bitmap
@@ -222,7 +222,7 @@ PUB putchar_0deg(ch) | p, gl_row, gl_col, last_glcol, last_glrow, char_wid, char
 # endif
 #endif
 
-pub putchar32_0deg(ch) | bpr, lastbyte, p, last_glcol, last_glrow, char_wid, char_ht, rowbyte, bit, gl_row, gl_col
+PUB putchar32_0deg(ch) | bpr, lastbyte, p, last_glcol, last_glrow, char_wid, char_ht, rowbyte, bit, gl_row, gl_col
 ' Low-level character rendering routine
 '   For font file definitions with these characteristics:
 '   * 0 degrees rotation (portrait, top-down)
@@ -728,17 +728,40 @@ PUB scroll_right(sx, sy, ex, ey) | scr_width, src, dest, y, yoffs
 
 
 PUB scrollup = scroll_up
-PUB scroll_up(sx, sy, ex, ey) | scr_width, src, dest, x, y
+PUB scroll_up(sx, sy, ex, ey) | sw, y, s, d, p, bpl
 ' Scroll a region of the display up by 1 pixel
-    scr_width := ex-sx
-    repeat y from sy+1 to ey
-#ifdef 1BPP
+'   sx, sy:     upper-left coordinates of scroll area (must be less than (ex, ey) )
+'   ex, ey:     lower-right coordinates of scroll area (must be greater than (sx, sy) )
+
+    ' reject bad coordinates
+    if (    (sx < 0) or (sx > _disp_xmax) or (sy < 0) or (sy > _disp_ymax) or ...
+            (ex < 0) or (ex > _disp_xmax) or (ey < 0) or (ey > _disp_ymax) )
+        return
+# ifdef 1BPP
         copy(sx, y, ex, y, sx, y-1)
-#else
-        src := sx + (y * _disp_width) * BYTESPERPX
-        dest := sx + ((y-1) * _disp_width) * BYTESPERPX
-        MEMMV_NATIVE(_ptr_drawbuffer + dest, _ptr_drawbuffer + src, scr_width)
-#endif
+# else
+    ' prep, pre-calc
+    p := _ptr_drawbuffer
+    sw := ( ( (ex-sx)+1) * BYTESPERPX) / BPPDIV ' get scroll width in _bytes_
+    sx := (sx * BYTESPERPX) / BPPDIV            ' scale left X coord by display color depth
+    bpl := _bytesperln
+
+    repeat y from sy+1 to ey
+        s := sx + (y * bpl)                     ' source: sx, sy
+        d := sx + ((y-1) * bpl)                 ' destination: the line above
+
+        ' do the actual scrolling:
+        ' pick the fastest possible block move function, based on whether the scroll width is
+        '   evenly divisible by 4, 2, or 1
+        ifnot ( sw & %11 )
+            longmove(p+d, p+s, sw >> 2)         ' bytes / 4
+        elseifnot ( sw & %1 )
+            wordmove(p+d, p+s, sw >> 1)         ' bytes / 2
+        else
+            bytemove(p+d, p+s, sw)
+
+    line(sx, ey, ex, ey, _bgcolor)              ' erase the line at the bottom of the scroll area
+# endif
 #endif
 
 

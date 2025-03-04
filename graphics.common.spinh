@@ -4,7 +4,7 @@
     Description:    Generic bitmap-oriented graphics rendering routines
     Author:         Jesse Burt
     Started:        May 19, 2019
-    Updated:        Feb 8, 2025
+    Updated:        Mar 4, 2025
     Copyright (c) 2025 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
@@ -61,13 +61,33 @@ PUB bitmap(ptr_bmap, xs, ys, bm_wid, bm_lns) | offs
 #endif
 
 
+PUB bitmap_1bpp(ptr_bmap, x, y, w, h) | bmbytes_ln, b, j, i, row, col
+' Copy a 1-bpp bitmap to the display buffer
+'   ptr_bmap: pointer to bitmap data
+'   (x, y): upper-left corner of bitmap
+'   w: width of bitmap, in pixels
+'   h: height of bitmap, in pixels
+    bmbytes_ln := (w + 7) / 8                   ' bytes per line of the bitmap
+    b := 0
+
+    repeat row from 0 to h-1
+        repeat col from 0 to w-1
+            if ( col & 7 )
+                b <<= 1
+            else
+                b := byte[ptr_bmap][(row * bmbytes_ln) + (col / 8)]
+            if ( b & $80 )
+                plot(x + col, y, 1)
+        y++
+
+
 #ifndef GFX_DIRECT
-PUB box(x0, y0, x1, y1, color, filled) | x, y
+PUB box(x0, y0, x1, y1, color, filled=FALSE) | x, y
 ' Draw a box
 '   x0, y0: Start coordinates
 '   x1, y1: End coordinates
 '   color:  box color
-'   filled: Flag to set whether to fill the box or not
+'   filled: Flag to set whether to fill the box or not (default: no)
     case filled
         FALSE:
             repeat x from x0 to x1
@@ -85,7 +105,7 @@ PUB box(x0, y0, x1, y1, color, filled) | x, y
             if (    (x0 => 0) and (x0 =< _disp_xmax) and (y0 => 0) and ...
                     (y0 =< _disp_ymax) and (x1 => 0) and (x1 =< _disp_xmax) and ...
                     (y1 => 0) and (y1 =< _disp_ymax) )
-                x := ||(x1-x0)+1
+                x := abs(x1-x0)+1
                 if ( x1 < x0 )
                     repeat y from y0 to y1
                         memfill(x1, y, color, x)
@@ -203,7 +223,7 @@ PUB putchar_0deg(ch) | p, gl_row, gl_col, last_glcol, last_glrow, char_wid, char
 # endif
 #endif
 
-pub putchar32_0deg(ch) | bpr, lastbyte, p, last_glcol, last_glrow, char_wid, char_ht, rowbyte, bit, gl_row, gl_col
+PUB putchar32_0deg(ch) | bpr, lastbyte, p, last_glcol, last_glrow, char_wid, char_ht, rowbyte, bit, gl_row, gl_col
 ' Low-level character rendering routine
 '   For font file definitions with these characteristics:
 '   * 0 degrees rotation (portrait, top-down)
@@ -395,12 +415,12 @@ PUB char_attrs(attrs)
     _char_attrs := attrs
 
 
-PUB circle(x0, y0, radius, color, filled) | x, y, err, cdx, cdy, cht
+PUB circle(x0, y0, radius, color, filled=FALSE) | x, y, err, cdx, cdy, cht
 ' Draw a circle
 '   x0, y0: Coordinates
 '   radius: Circle radius
 '   color: Color to draw circle
-'   filled: fill the circle (0: no, nonzero: yes)
+'   filled: fill the circle (0: no, nonzero: yes, default: no)
     case filled
         FALSE:
             x := radius - 1
@@ -521,8 +541,8 @@ PUB line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
             repeat sx from x1 to x2
                 plot(sx, y1, c)
     else                                        ' draw diag. line (Bresenham)
-        ddx := ||(x2-x1)
-        ddy := ||(y2-y1)
+        ddx := abs(x2-x1)
+        ddy := abs(y2-y1)
         err := ddx-ddy
 
         sx := -1
@@ -717,17 +737,40 @@ PUB scroll_right(sx, sy, ex, ey) | scr_width, src, dest, y, yoffs
 
 
 PUB scrollup = scroll_up
-PUB scroll_up(sx, sy, ex, ey) | scr_width, src, dest, x, y
+PUB scroll_up(sx, sy, ex, ey) | sw, y, s, d, p, bpl
 ' Scroll a region of the display up by 1 pixel
-    scr_width := ex-sx
-    repeat y from sy+1 to ey
-#ifdef 1BPP
+'   sx, sy:     upper-left coordinates of scroll area (must be less than (ex, ey) )
+'   ex, ey:     lower-right coordinates of scroll area (must be greater than (sx, sy) )
+
+    ' reject bad coordinates
+    if (    (sx < 0) or (sx > _disp_xmax) or (sy < 0) or (sy > _disp_ymax) or ...
+            (ex < 0) or (ex > _disp_xmax) or (ey < 0) or (ey > _disp_ymax) )
+        return
+# ifdef 1BPP
         copy(sx, y, ex, y, sx, y-1)
-#else
-        src := sx + (y * _disp_width) * BYTESPERPX
-        dest := sx + ((y-1) * _disp_width) * BYTESPERPX
-        MEMMV_NATIVE(_ptr_drawbuffer + dest, _ptr_drawbuffer + src, scr_width)
-#endif
+# else
+    ' prep, pre-calc
+    p := _ptr_drawbuffer
+    sw := ( ( (ex-sx)+1) * BYTESPERPX) / BPPDIV ' get scroll width in _bytes_
+    sx := (sx * BYTESPERPX) / BPPDIV            ' scale left X coord by display color depth
+    bpl := _bytesperln
+
+    repeat y from sy+1 to ey
+        s := sx + (y * bpl)                     ' source: sx, sy
+        d := sx + ((y-1) * bpl)                 ' destination: the line above
+
+        ' do the actual scrolling:
+        ' pick the fastest possible block move function, based on whether the scroll width is
+        '   evenly divisible by 4, 2, or 1
+        ifnot ( sw & %11 )
+            longmove(p+d, p+s, sw >> 2)         ' bytes / 4
+        elseifnot ( sw & %1 )
+            wordmove(p+d, p+s, sw >> 1)         ' bytes / 2
+        else
+            bytemove(p+d, p+s, sw)
+
+    line(sx, ey, ex, ey, _bgcolor)              ' erase the line at the bottom of the scroll area
+# endif
 #endif
 
 
