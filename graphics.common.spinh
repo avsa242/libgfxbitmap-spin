@@ -28,8 +28,8 @@ VAR
     { font parameters }
     long _char_attrs
     long _font_addr
+    long _charpx_x, _charpx_y
     word _charpx_xmax, _charpx_ymax
-    word _charpx_x, _charpx_y
     byte _fnt_width, _fnt_height, _fnt_rot, _fnt_cmin, _fnt_cmax, _char_hspace, _char_vspace
     byte _fnt_xscl, _fnt_yscl
     byte _charcell_w, _charcell_h
@@ -406,8 +406,10 @@ PUB putchar_90deg(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, la
 CON
 
     { character attributes }
-    DRAWBG  = (1 << 0)                          ' draw background color
-    TERMINAL= (1 << 1)                          ' process control characters
+    DRAWBG      = (1 << 0)                      ' draw background color
+    TERMINAL    = (1 << 1)                      ' process control characters
+    TEXT_WRAP   = (1 << 2)                      ' wrap text when crossing display bounds
+
 
 PUB charattrs = char_attrs
 PUB char_attrs(attrs)
