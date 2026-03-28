@@ -4,8 +4,8 @@
     Description:    Generic bitmap-oriented graphics rendering routines
     Author:         Jesse Burt
     Started:        May 19, 2019
-    Updated:        Mar 4, 2025
-    Copyright (c) 2025 - See end of file for terms of use.
+    Updated:        Mar 28, 2026
+    Copyright (c) 2026 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
 
@@ -16,11 +16,12 @@ VAR
     { putchar() function pointer }
     long putchar
 
-    { display buffer and dimensions }
+    { display buffer and dimensions (irrespective of hardware/panel-specific dimensions) }
     long _ptr_drawbuffer
     long _buff_sz
     long _bytesperln
     long _disp_width, _disp_height, _disp_xmax, _disp_ymax
+    byte _rotation
 
     { current draw color }
     long _fgcolor, _bgcolor
@@ -497,19 +498,30 @@ PUB font_scl(x, y): curr_scl
 
 
 PUB fontsize = font_sz
-PUB font_sz(w, h)
-' Set expected dimensions of font glyphs, in pixels
+PUB font_sz(w=0, h=0)
+' Set expected dimensions of font glyphs
+'   w, h:   dimensions (optional; if unspecified, the last set values will be used to
+'               recompute cursor limits)
 '   NOTE: This has a direct impact on the number of text columns and rows
 '   NOTE: font_spacing() should be called before calling this method
-    _fnt_width := w
-    _fnt_height := h
+
+    if ( (w <> 0) and (h <> 0) )                ' set or change font dimensions
+        _fnt_width := w
+        _fnt_height := h
+
+    ' make sure glyph scaling is a safe minimum
     _fnt_xscl := 1 #> _fnt_xscl
     _fnt_yscl := 1 #> _fnt_yscl
 
-    _charcell_w := (_fnt_width + _char_hspace) ' calc overall character cell
-    _charcell_h := (_fnt_height + _char_vspace)'   dims (font size + spacing)
-    _charpx_xmax := (_disp_width - _charcell_w) ' calc maximum x, y character
-    _charpx_ymax := (_disp_height - _charcell_h)'   pixel position
+    ' calc overall character cell size (glyph size + set spacing)
+    _charcell_w := (_fnt_width + _char_hspace)
+    _charcell_h := (_fnt_height + _char_vspace)
+
+    ' calc max pixel-level cursor position
+    _charpx_xmax := (_disp_width - _charcell_w)
+    _charpx_ymax := (_disp_height - _charcell_h)
+
+    ' calc max text cursor position
     _charcell_xmax := (_disp_width / _charcell_w)
     _charcell_ymax := (_disp_height / _charcell_h)
 
@@ -881,6 +893,39 @@ PUB set_putchar(ptr)
     putchar := ptr
 
 
+PUB set_rotation(r) | w, h
+' Set display orientation (soft-rotation)                                                               
+'   r:  orientation from hardware default (degrees)
+'       0:      no change from panel/hardware default
+'       90:     rotate 90deg CW
+'       180:    rotate 180deg
+'       270:    rotate 270deg
+
+    case r
+        0:
+            w := WIDTH                          ' orientation = panel orientation
+            h := HEIGHT
+            _rotation := 0
+        90:
+            w := HEIGHT                         ' orientation width/height swapped
+            h := WIDTH
+            _rotation := 1
+        180:
+            w := WIDTH                          ' panel width/height unchanged
+            h := HEIGHT
+            _rotation := 2
+
+        270:
+            w := HEIGHT                         ' panel width/height swapped
+            h := WIDTH
+            _rotation := 3
+        other:
+            return
+
+    set_dims(w, h)                              ' set/update drawable screen dimensions
+    font_sz()                                   ' re-compute text cursor limits
+
+
 PUB textcols = text_cols
 PUB text_cols(): cols
 ' Returns number of displayable text columns, based on set display width, font width, and scale
@@ -892,9 +937,10 @@ PUB text_rows(): rows
 ' Returns number of displayable text rows, based on set display height, font height, and scale
     return _charcell_ymax / _fnt_yscl
 
+
 DAT
 {
-Copyright 2025 Jesse Burt
+Copyright 2026 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
