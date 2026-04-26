@@ -4,7 +4,7 @@
     Description:    Generic bitmap-oriented graphics rendering routines
     Author:         Jesse Burt
     Started:        May 19, 2019
-    Updated:        Mar 28, 2026
+    Updated:        Apr 26, 2026
     Copyright (c) 2026 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
@@ -43,22 +43,30 @@ PUB bgcolor(col)
 
 
 #ifndef GFX_DIRECT
-PUB bitmap(ptr_bmap, xs, ys, bm_wid, bm_lns) | offs
+PUB bitmap(p_bmap, xs, ys, w, h) | p_fb_end, src, dest, offs
 ' Copy a bitmap to the display buffer
-'   ptr_bmap: pointer to bitmap data
-'   (xs, ys): upper-left corner of bitmap
-'   bm_wid: width of bitmap, in pixels
-'   bm_lns: number of lines in bitmap
-    bm_wid /= BPPDIV                            ' for color depths less than 8bpp
+'   p_bmap:     pointer to bitmap data
+'   (xs, ys):   upper-left corner of bitmap
+'   w:          width of bitmap, in pixels
+'   h:          number of lines in bitmap
+    w /= BPPDIV                                 ' for color depths less than 8bpp
+    p_fb_end := (_ptr_drawbuffer+_buff_sz)-_bytesperln' calc ptr to start of last row of FB memory
+    w := w <# _disp_width-xs
+    xs *= BYTESPERPX
+    src := p_bmap                               ' init working pointers
+    dest := _ptr_drawbuffer                     '
     repeat
         ' calc offset from framebuffer and bitmap start,
         '   then copy the bitmap one line at a time,
         '   using the display's defined native word size
-        offs := ( (ys++ * _bytesperln) + xs)    ' increment Y start
-        MEMMV_NATIVE(   _ptr_drawbuffer+offs <# (_ptr_drawbuffer+_buff_sz)-bm_wid, ...
-                        ptr_bmap+offs, ...
-                        bm_wid)
-    while (--bm_lns)                            ' loop if there're more lines
+        offs := ( (ys * _bytesperln) + xs)
+        dest += offs
+        MEMMV_NATIVE(   dest <# p_fb_end, ...   ' protect against writing past the FB in RAM
+                        src, ...
+                        w)
+        src += offs
+        ys++                                    ' next row
+    while (--h)                                 ' loop if there're more lines
 #endif
 
 
