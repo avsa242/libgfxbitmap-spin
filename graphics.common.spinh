@@ -122,7 +122,7 @@ PUB box(x0, y0, x1, y1, color, filled=FALSE) | x, y
                     repeat y from y0 to y1
                         memfill(x0, y, color, x)
             else
-                return FALSE
+                return
 #endif
 #endif
 
