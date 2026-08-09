@@ -4,7 +4,7 @@
     Description:    Generic bitmap-oriented graphics rendering routines
     Author:         Jesse Burt
     Started:        May 19, 2019
-    Updated:        Apr 26, 2026
+    Updated:        Aug 9, 2026
     Copyright (c) 2026 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
@@ -552,6 +552,22 @@ PUB get_address(): addr
     return _ptr_drawbuffer
 
 
+#ifndef HAS_HLINE
+PUB hline(y, xs, len, c) | x
+' Draw horizontal line
+'   y:      y-position (pixels)
+'   xs:     x start-position (pixels)
+'   len:    length of line (pixels)
+'   c:      color
+# ifndef GFX_DIRECT
+    memfill(xs, y, c, len-1)
+# else
+    repeat x from xs to (xs+len-1)
+        plot(x, y, c)
+# endif
+#endif
+
+
 #ifndef GFX_DIRECT
 PUB line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
 ' Draw line from x1, y1 to x2, y2, in color c
@@ -944,6 +960,18 @@ PUB textrows = text_rows
 PUB text_rows(): rows
 ' Returns number of displayable text rows, based on set display height, font height, and scale
     return _charcell_ymax / _fnt_yscl
+
+
+#ifndef HAS_VLINE
+pub vline(x, ys, len, c) | y
+' Draw horizontal line
+'   x:      x-position (pixels)
+'   ys:     y start-position (pixels)
+'   len:    length of line (pixels)
+'   c:      color
+    repeat y from ys to (ys+len-1)
+        plot(x, y, c)
+#endif
 
 
 DAT
