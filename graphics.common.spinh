@@ -4,7 +4,7 @@
     Description:    Generic bitmap-oriented graphics rendering routines
     Author:         Jesse Burt
     Started:        May 19, 2019
-    Updated:        Aug 9, 2026
+    Updated:        Aug 15, 2026
     Copyright (c) 2026 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
@@ -658,6 +658,15 @@ PUB rgbw8888_rgb32_brightness(r, g, b, w, level): rgb32
         b := b * level / 255
         w := w * level / 255
         return RGBW8888_RGB32(r, g, b, w)
+
+
+pub rgb32_rgb16(rgb32): rgb16
+' Convert RGBx32 (8-8-8-x) color to RGB16 (5-6-5)
+'   rgb32:      RGBx32 color (RGB left-justified, x is don't care)
+'   Returns:    RGB565 color
+    rgb16 := (rgb32 >> 27) << 11                ' keep top 5 bits of red, and reposition it
+    rgb16 |= ((rgb32 >> 18) & $3f) << 5         ' keep top 6 bits of green, and reposition it
+    rgb16 |= ((rgb32 >> 11) & $1f)              ' keep top 5 bits of blue
 
 
 PUB rgb565_r5(rgb565): r5
