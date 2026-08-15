@@ -559,7 +559,7 @@ PUB hline(y, xs, len, c) | x
 '   len:    length of line (pixels)
 '   c:      color
 # ifndef GFX_DIRECT
-    memfill(xs, y, c, len-1)
+    memfill(xs, y, c, len)
 # else
     repeat x from xs to (xs+len-1)
         plot(x, y, c)
