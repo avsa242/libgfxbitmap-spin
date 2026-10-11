@@ -10,24 +10,43 @@
 }
 {Spin2_v46}
 #include "terminal.common.spin2h"               ' for printf(), puts(), etc
+#ifndef MAX_CONTEXTS
+# define MAX_CONTEXTS 1
+#endif
+
+#ifndef MAX_FONTS
+# define MAX_FONTS 1
+#endif
 
 CON
 
     ' display structure definitions
+    struct cursor_s(...
+        word x, y)
 
-    ' display setup
+
+    ' display base config
     struct disp_setup_s(...
-        long p_buffer, ...                      ' pointer to the display's framebuffer
+        long p_buffer, ...                      ' pointer to the display buffer
+        long buffer_sz, ...                     ' buffer size (bytes)
+        word width, height, ...                 ' screen dimensions (pixels)
+        word stride)                            ' size of a line (bytes)
+
+    ' display context
+    struct disp_context_s(...
+        long p_buffer, ...                      ' pointer to the context's buffer
         long buffer_sz, ...                     ' size of the buffer in bytes
-        long line_sz, ...                       ' size of a line in bytes
-        long width, height, ...                 ' display dimensions in pixels
-        long xmax, ymax)                        ' pixel-level coordinate maximums
+        long fgcolor, ...
+        long bgcolor, ...
+        word stride, ...                        ' xxx is this really needed?
+        word sx, sy, ...                        ' display area
+        word ex, ey, ...
+        byte rotation)
 
     ' font setup
     struct font_setup_s(...
         long p_ftable, ...                      ' pointer to font data/table
         word cursor_xmax, cursor_ymax, ...      ' pixel-level coordinate maximums
-        word cursor_x, cursor_y, ...          ' cursor position: pixel-level
         byte glyph_w, glyph_h, ...              ' glyph dims
         byte rotation, ...                      ' rotation format of font glyph data
         byte char_min, char_max, ...            ' min and max ASCII values represented by font
@@ -43,12 +62,10 @@ VAR
     { putchar() function pointer }
     long            putchar
 
-    { current draw color }
-    long            _fgcolor, _bgcolor
-
-    disp_setup_s    setup
-
-    font_setup_s    font
+    disp_setup_s    screen
+    disp_context_s  ctx'[MAX_CONTEXTS]
+    cursor_s        cursor
+    font_setup_s    font[MAX_FONTS]
 
     { terminal i/o attributes }
     long            _char_attrs
@@ -56,7 +73,7 @@ VAR
 
 PUB bgcolor(col)
 ' Set background color for subsequent drawing
-    _bgcolor := col
+    ctx.bgcolor := col
 
 
 #ifndef GFX_DIRECT
@@ -67,16 +84,16 @@ PUB bitmap(p_bmap, xs, ys, w, h) | p_fb_end, src, dest, offs
 '   w:          width of bitmap, in pixels
 '   h:          number of lines in bitmap
     w /= BPPDIV                                 ' for color depths less than 8bpp
-    p_fb_end := (_ptr_drawbuffer+_buff_sz)-_bytesperln' calc ptr to start of last row of FB memory
-    w := w <# _disp_width-xs
+    p_fb_end := (ctx.p_buffer+ctx.buffer_sz)-ctx.stride' calc ptr to start of last row of FB memory
+    w := w <# ((ctx.ex-ctx.sx)+1)-xs            ' limit width to fit from here to context width
     xs *= BYTESPERPX
     src := p_bmap                               ' init working pointers
-    dest := _ptr_drawbuffer                     '
+    dest := ctx.p_buffer                     '
     repeat
         ' calc offset from framebuffer and bitmap start,
         '   then copy the bitmap one line at a time,
         '   using the display's defined native word size
-        offs := ( (ys * _bytesperln) + xs)
+        offs := ( (ys * ctx.stride) + xs)
         dest += offs
         MEMMV_NATIVE(   dest <# p_fb_end, ...   ' protect against writing past the FB in RAM
                         src, ...
@@ -108,146 +125,35 @@ PUB bitmap_1bpp(ptr_bmap, x, y, w, h) | bmbytes_ln, b, j, i, row, col
 
 
 #ifndef GFX_DIRECT
-PUB box(x0, y0, x1, y1, color, filled=FALSE) | x, y
+PUB box(sx, sy, ex, ey, c, f=false) | x, y, w
 ' Draw a box
-'   x0, y0: Start coordinates
-'   x1, y1: End coordinates
-'   color:  box color
-'   filled: Flag to set whether to fill the box or not (default: no)
-    case filled
-        FALSE:
-            repeat x from x0 to x1
-                plot(x, y0, color)
-                plot(x, y1, color)
-            repeat y from y0 to y1
-                plot(x0, y, color)
-                plot(x1, y, color)
-        TRUE:
-#ifdef 1BPP
-            repeat y from y0 to y1
-                repeat x from x0 to x1
-                    plot(x, y, color)
-#else
-            if (    (x0 >= 0) and (x0 <= setup.xmax) and (y0 >= 0) and ...
-                    (y0 <= setup.ymax) and (x1 >= 0) and (x1 <= setup.xmax) and ...
-                    (y1 >= 0) and (y1 <= setup.ymax) )
-                x := abs(x1-x0)+1
-                if ( x1 < x0 )
-                    repeat y from y0 to y1
-                        memfill(x1, y, color, x)
-                else
-                    repeat y from y0 to y1
-                        memfill(x0, y, color, x)
-            else
-                return
-#endif
+'   sx, sy: start coordinates
+'   ex, ey: end coordinates
+'   c:      box color
+'   filled: flag to set whether to fill the box or not (default: no)
+    DEBUG("[gfx] box(", udec_(sx), udec_(sy), udec_(ex), udec_(ey), ")")
+    case f
+        false:
+            hline(sy, sx, ex-sx+1, c)           ' draw top edge
+            hline(ey, sx, ex-sx+1, c)           ' draw bottom edge
+            vline(sx, sy, ey-sy+1, c)           ' draw left edge
+            vline(ex, sy, ey-sy+1, c)           ' draw right edge
+        true:
+# ifdef 1BPP
+            repeat y from sy to ey
+                repeat x from sx to ex
+                    plot(x, y, c)
+# else
+            w := abs(ex-sx)+1               ' get fill width
+            if ( ex < sx )                  ' swap sx and ex if ex is less
+                sx, ex := ex, sx
+            repeat y from sy to ey          ' fill each line of the box's region
+                memfill(sx, y, c, w)
+# endif
 #endif
 
 PUB tx = putchar
 PUB char = putchar
-
-PUB putchar_0deg(ch) | p, gl_row, gl_col, last_glcol, last_glrow, char_wid, char_ht, xs, xe, ys, ye, fws, glrs, fw, fh, cwd, cht, fxs, fys
-' Low-level character rendering routine
-'   For font file definitions with these characteristics:
-'   * 0 degrees rotation (portrait, top-down)
-'   * each glyph word is a row of the glyph, e.g. for 5x8 'A':
-'       %00100000
-'       %01010000
-'       %10001000
-'       %10001000
-'       %11111000
-'       %10001000
-'       %10001000
-'       %00000000
-'   * bit order can be normal (MSBit in each glyph word is left edge)
-'       or reversed (MSBit in each glyph word is right edge; build with -DFNT_GLYPH_REV)
-'   * up to 8px wide
-    if ( (ch < font.char_min) or (ch > font.char_max) ) ' don't waste any time if the char is invalid
-        return
-
-    p := font.p_ftable + (ch * font.glyph_h)
-    fw := font.glyph_w                            ' copy global vars to locals to reduce hub access
-    fh := font.glyph_h                           '   inside loops
-    cwd := font.cell_w
-    cht := font.cell_h
-    fxs := font.xscale
-    fys := font.yscale
-    last_glcol := fw-1                          ' last column of pixels in font
-    last_glrow := fh-1                          '   definition
-    char_wid := cwd * fxs                       ' scaled character dimensions
-    char_ht := cht * fys                        '
-
-    if ( _char_attrs & TERMINAL )
-        { process control characters, don't draw them }
-        case ch
-            LF:
-                { line feed }
-                font.cursor_ymax += char_ht            ' goto next text row
-                if ( font.cursor_ymax > font.cursor_ymax )
-                    font.cursor_ymax -= char_ht        ' scroll the display up a row if we try to go
-#ifndef GFX_DIRECT
-                    scroll_up_fs(char_ht)       '   past the end
-#endif
-                return
-            CR:
-                { carriage return }
-                font.cursor_x := 0                  ' goto first text column
-                return
-
-    if ( (fxs == 1) and (fys == 1) )
-        { read a glyph in from the font table }
-        repeat gl_row from 0 to last_glrow
-            repeat gl_col from 0 to last_glcol
-#ifdef FNT_GLYPH_REV
-                { reverse byte-order glyphs (MSBit in each glyph word is right edge) }
-                if ( byte[p][gl_row] & (1 << gl_col) )
-#else
-                { normal byte-order glyphs (MSBit in each glyph word is left edge) }
-                if ( (byte[p][gl_row] rev 7 ) & (1 << gl_col) )
-#endif
-                    plot(   font.cursor_x + gl_col, ...
-                            font.cursor_y + gl_row, ...
-                            _fgcolor )
-                else
-                    { draw the background color for unset pixels if the DRAWBG attribute is set
-                        ( see char_attr() )
-                    otherwise, unset pixels will be ignored (effectively transparent) }
-                    if ( _char_attrs & DRAWBG )
-                        plot(   font.cursor_x + gl_col, ...
-                                font.cursor_y + gl_row, ...
-                                _bgcolor )
-    else
-        fws := fw * fxs
-        repeat gl_row from 0 to last_glrow
-            ys := font.cursor_ymax + (gl_row * fys)
-            ye := (ys + fys)-1
-            repeat gl_col from 0 to last_glcol
-#ifdef FNT_GLYPH_REV
-                xs := font.cursor_x + fws - (gl_col * fxs)
-                xe := (xs + fxs)-1
-                { reverse byte-order glyphs (MSBit in each glyph word is right edge) }
-                if ( byte[p][gl_row] & (1 << gl_col) )
-#else
-                { normal byte-order glyphs (MSBit in each glyph word is left edge) }
-                if ( (byte[p][gl_row] rev 7 ) & (1 << gl_col) )
-#endif
-                    box(xs, ys, xe, ye, _fgcolor, true)
-                else
-                    if ( _char_attrs & DRAWBG )
-                        box(xs, ys, xe, ye, _bgcolor, true)
-
-    font.cursor_x += char_wid                       ' goto next column
-
-#ifndef FNT_POS_NOGRID
-    if ( font.cursor_x > font.cursor_xmax )
-        font.cursor_x := 0                          ' goto the first column of the next row if we try
-        font.cursor_y += char_ht                    '   to go past the right edge
-    if ( font.cursor_y > font.cursor_ymax )
-        font.cursor_y -= char_ht                    ' scroll the display up a row if we try to go
-# ifndef GFX_DIRECT
-        scroll_up_fs(char_ht)                   '   past the end
-# endif
-#endif
 
 PUB putchar32_0deg(ch) | bpr, lastbyte, p, last_glcol, last_glrow, char_wid, char_ht, rowbyte, bit, gl_row, gl_col
 ' Low-level character rendering routine
@@ -290,7 +196,7 @@ PUB putchar32_0deg(ch) | bpr, lastbyte, p, last_glcol, last_glrow, char_wid, cha
                 return
             CR:
                 { carriage return }
-                font.cursor_x := 0                  ' goto first text column
+                cursor.x := 0                  ' goto first text column
                 return
 
     { read a glyph in from the font table }
@@ -298,39 +204,33 @@ PUB putchar32_0deg(ch) | bpr, lastbyte, p, last_glcol, last_glrow, char_wid, cha
         gl_col := 0
         repeat rowbyte from 0 to lastbyte       ' for each byte in the row
             repeat bit from 0 to 7
-#ifdef FNT_GLYPH_REV
-                { reverse byte-order glyphs (MSBit in each byte of glyph data is right edge) }
-                if ( (byte[p][rowbyte] rev 7) & (1 << bit) )
-#else
                 { normal byte-order glyphs (MSBit in each byte of glyph data is left edge) }
                 if ( byte[p][rowbyte] & (1 << bit) )
-#endif
-                    plot(   font.cursor_x + gl_col, ...
-                            font.cursor_y + gl_row, ...
-                            _fgcolor )
+                    plot(   cursor.x + gl_col, ...
+                            cursor.y + gl_row, ...
+                            ctx.fgcolor )
                 else
                     { draw the background color for unset pixels if the DRAWBG attribute is set
                         ( see char_attr() )
                     otherwise, unset pixels will be ignored (effectively transparent) }
                     if ( _char_attrs & DRAWBG )
-                        plot(   font.cursor_x + gl_col, ...
+                        plot(   cursor.x + gl_col, ...
                                 font.cursor_ymax + gl_row, ...
-                                _bgcolor )
+                                ctx.bgcolor )
                 gl_col++
         p += bpr                                ' point to next row of glyph data
 
-    font.cursor_x += char_wid                       ' goto next column
+    cursor.x += char_wid                       ' goto next column
 
-#ifndef FNT_POS_NOGRID
-    if ( font.cursor_x > font.cursor_xmax )
-        font.cursor_x := 0                          ' goto the first column of the next row if we try
-        font.cursor_y += char_ht                    '   to go past the right edge
-    if ( font.cursor_y > font.cursor_ymax )
-        font.cursor_y -= char_ht                    ' scroll the display up a row if we try to go
+    if ( cursor.x > font.cursor_xmax )
+        cursor.x := 0                          ' goto the first column of the next row if we try
+        cursor.y += char_ht                    '   to go past the right edge
+    if ( cursor.y > font.cursor_ymax )
+        cursor.y -= char_ht                    ' scroll the display up a row if we try to go
 # ifndef GFX_DIRECT
         scroll_up_fs(char_ht)                   '   past the end
 # endif
-#endif
+
 
 PUB putchar_90deg(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, last_glyph_row, glyph, char_ht, char_wid
 ' Low-level character rendering routine
@@ -357,16 +257,16 @@ PUB putchar_90deg(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, la
         case ch
             LF:
                 { line feed }
-                font.cursor_y += char_ht            ' goto next text row
-                if ( font.cursor_y > font.cursor_ymax )
-                    font.cursor_y -= char_ht        ' scroll the display up a row if we try to go
+                cursor.y += char_ht            ' goto next text row
+                if ( cursor.y > font.cursor_ymax )
+                    cursor.y -= char_ht        ' scroll the display up a row if we try to go
 #ifndef GFX_DIRECT
                     scroll_up_fs(char_ht)       '   past the end
 #endif
                 return
             CR:
                 { carriage return }
-                font.cursor_x := 0                  ' goto first text column
+                cursor.x := 0                  ' goto first text column
                 return
 
     { read a glyph in from the font table }
@@ -376,57 +276,50 @@ PUB putchar_90deg(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, la
         repeat glyph_col from 0 to last_glyph_col
 #ifdef FNT_GLYPH_REV
             { reversed byte order fonts }
-            xs := font.cursor_x + (font.glyph_w-glyph_col)
+            xs := cursor.x + (font.glyph_w-glyph_col)
 #else
             { normal byte order fonts }
-            xs := font.cursor_x + glyph_col
+            xs := cursor.x + glyph_col
 #endif
             glyph := ch + glyph_col             ' point to current glyph data
             repeat glyph_row from 0 to last_glyph_row
                 if ( byte[font.p_ftable][glyph] & (1 << glyph_row) )
                     plot(   xs, ...
-                            font.cursor_y + glyph_row, ...
-                            _fgcolor )
+                            cursor.y + glyph_row, ...
+                            ctx.fgcolor )
                 else
                     if ( _char_attrs & DRAWBG )
                         { actually draw the currently set background color (see bgcolor() ) }
                         { NOTE: This incurs a significant speed penalty if enabled }
                         plot(   xs, ...
-                                font.cursor_y + glyph_row, ...
-                                _bgcolor )
+                                cursor.y + glyph_row, ...
+                                ctx.bgcolor )
     else
         { scale font rendering up by an integer factor (x, y independently) }
         { use filled boxes to draw each pixel of the glyph }
         repeat glyph_col from 0 to last_glyph_col
-#ifdef FNT_GLYPH_REV
-            { reversed byte order fonts }
-            xs := font.cursor_x + (font.glyph_w*font.xscale)-(glyph_col * font.xscale)
-#else
             { normal byte order fonts }
-            xs := font.cursor_x + (glyph_col * font.xscale)
-#endif
+            xs := cursor.x + (glyph_col * font.xscale)
             xe := (xs + font.xscale)
             glyph := ch + glyph_col             ' point to current glyph data
             repeat glyph_row from 0 to last_glyph_row
-                ys := font.cursor_y + (glyph_row * font.yscale)
+                ys := cursor.y + (glyph_row * font.yscale)
                 ye := ys + font.yscale
                 if ( byte[font.p_ftable][glyph] & (1 << glyph_row) )
-                    box(xs, ys, xe, ye, _fgcolor, true)
+                    box(xs, ys, xe, ye, ctx.fgcolor, true)
                 else
                     if ( _char_attrs & DRAWBG )
-                        box(xs, ys, xe, ye, _bgcolor, true)
+                        box(xs, ys, xe, ye, ctx.bgcolor, true)
 
-    font.cursor_x += char_wid                       ' goto next column
-#ifndef FNT_POS_NOGRID
-    if ( font.cursor_x > font.cursor_xmax )
-        font.cursor_x := 0                          ' goto the first column of the next row if we try
-        font.cursor_y += char_ht                    '   to go past the right edge
-    if ( font.cursor_y > font.cursor_ymax )
-        font.cursor_y -= char_ht                    ' scroll the display up a row if we try to go
+    cursor.x += char_wid                       ' goto next column
+    if ( cursor.x > font.cursor_xmax )
+        cursor.x := 0                          ' goto the first column of the next row if we try
+        cursor.y += char_ht                    '   to go past the right edge
+    if ( cursor.y > font.cursor_ymax )
+        cursor.y -= char_ht                    ' scroll the display up a row if we try to go
 # ifndef GFX_DIRECT
         scroll_up_fs(char_ht)                   '   past the end
 # endif
-#endif
 
 
 CON
@@ -442,45 +335,44 @@ PUB char_attrs(attrs)
     _char_attrs := attrs
 
 
-PUB circle(x0, y0, radius, color, filled=FALSE) | x, y, err, cdx, cdy, cht
+PUB circle(cx, cy, r, c, f=false) | x, y, err, cdx, cdy, cht, rsq
 ' Draw a circle
-'   x0, y0: Coordinates
-'   radius: Circle radius
-'   color: Color to draw circle
-'   filled: fill the circle (0: no, nonzero: yes, default: no)
-    case filled
-        FALSE:
-            x := radius - 1
-            y := 0
-            cdx := 1
-            cdy := 1
-            err := cdx - (radius << 1)
+'   cx, cy: center coordinates
+'   r:      circle radius
+'   c:      color to draw circle
+'   f:      fill the circle (0: no, nonzero: yes; default: no)
+    if ( f )                                    ' fill
+        rsq := (r * r)                          ' pre-calc radius^2
+        repeat x from -r to r
+            cht := sqrt( rsq - (x * x) )
+            repeat y from -cht to cht-1
+                plot(cx + x, cy + y, c)
+    else                                        ' no fill
+        x := r - 1
+        y := 0
+        cdx := 1
+        cdy := 1
+        err := cdx - (r << 1)
 
-            repeat while (x >= y)
-                plot(x0 + x, y0 + y, color)
-                plot(x0 + y, y0 + x, color)
-                plot(x0 - y, y0 + x, color)
-                plot(x0 - x, y0 + y, color)
-                plot(x0 - x, y0 - y, color)
-                plot(x0 - y, y0 - x, color)
-                plot(x0 + y, y0 - x, color)
-                plot(x0 + x, y0 - y, color)
+        repeat while (x >= y)
+            plot(cx + x, cy + y, c)
+            plot(cx + y, cy + x, c)
+            plot(cx - y, cy + x, c)
+            plot(cx - x, cy + y, c)
+            plot(cx - x, cy - y, c)
+            plot(cx - y, cy - x, c)
+            plot(cx + y, cy - x, c)
+            plot(cx + x, cy - y, c)
 
-                if (err <= 0)
-                    y++
-                    err += cdy
-                    cdy += 2
+            if (err <= 0)
+                y++
+                err += cdy
+                cdy += 2
 
-                if (err > 0)
-                    x--
-                    cdx += 2
-                    err += cdx - (radius << 1)
-        other:
-            repeat x from -radius to radius
-                cht := sqrt((radius * radius) - (x * x))
-                repeat y from -cht to cht-1
-                    plot(x0 + x, y0 + y, color)
-
+            if (err > 0)
+                x--
+                cdx += 2
+                err += cdx - (r << 1)
 
 #ifndef GFX_DIRECT
 PUB copy(sx, sy, ex, ey, dx, dy) | x, y, tmp
@@ -498,13 +390,13 @@ PUB cut(sx, sy, ex, ey, dx, dy) | x, y, tmp
         repeat x from sx to ex
             tmp := point(x, y)
             plot((dx + x)-sx, (dy + y)-sy, tmp)             ' Copy to destination region
-            plot(x, y, _bgcolor)                            ' Cut the original region
+            plot(x, y, ctx.bgcolor)                            ' Cut the original region
 #endif
 
 
 PUB fgcolor(col)
 ' Set foreground color of subsequent drawing operations
-    _fgcolor := col
+    ctx.fgcolor := col
 
 
 PUB fontheight = font_height
@@ -535,10 +427,10 @@ PUB font_sz(w=0, h=0)
 
     font.cell_w := (font.glyph_w + font.hspace)     ' calc overall character cell
     font.cell_h := (font.glyph_h + font.vspace)     '   dims (font size + spacing)
-    font.cursor_xmax := (setup.xmax - font.cell_w)  ' calc maximum x, y character
-    font.cursor_ymax := (setup.ymax - font.cell_h) '   pixel position
-    font.cell_xmax := (setup.width / font.cell_w)-1   '   and character-cell position
-    font.cell_ymax := (setup.height / font.cell_h)-1
+    font.cursor_xmax := (ctx.ex - font.cell_w)  ' calc maximum x, y character
+    font.cursor_ymax := (ctx.ey - font.cell_h) '   pixel position
+    font.cell_xmax := ( (ctx.ex-ctx.sx+1) / font.cell_w)-1   '   and character-cell position
+    font.cell_ymax := ( (ctx.ey-ctx.sy+1) / font.cell_h)-1
 
 
 PUB fontspacing = font_spacing
@@ -556,7 +448,7 @@ PUB font_width(): curr_wid
 
 PUB get_address(): addr
 ' Get the currently set display buffer address
-    return setup.p_buffer
+    return ctx.p_buffer
 
 
 #ifndef HAS_HLINE
@@ -566,12 +458,12 @@ PUB hline(y, xs, len, c) | x
 '   xs:     x start-position (pixels)
 '   len:    length of line (pixels)
 '   c:      color
-# ifndef GFX_DIRECT
+'# ifndef GFX_DIRECT
     memfill(xs, y, c, len)
-# else
-    repeat x from xs to (xs+len-1)
-        plot(x, y, c)
-# endif
+'# else
+'    repeat x from xs to (xs+len-1)
+'        plot(x, y, c)
+'# endif
 #endif
 
 
@@ -615,17 +507,8 @@ PUB line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
 PUB position = pos_xy
 PUB pos_xy(x, y)
 ' Set text draw position, in character-cell col and row
-#ifdef FNT_POS_NOGRID
-    { if set, position is set freehand - any pixel location on screen }
-    font.cursor_x := x                              ' leave untouched; plot() will validate whether
-    font.cursor_y := y                              '   any pixels are offscreen
-#else
-    { default: position is set in terms of character cell columns and rows }
-    x := 0 #> x <# text_cols()-1                ' clamp to min/max coordinates
-    y := 0 #> y <# text_rows()-1
-    font.cursor_x := (x * font.cell_w) * font.xscale  ' calc pixel position:
-    font.cursor_y := (y * font.cell_h) * font.yscale  ' char cell coords * font dims
-#endif
+    cursor.x := x                              ' leave untouched; plot() will validate whether
+    cursor.y := y                              '   any pixels are offscreen
 
 
 PUB r5g6b5_rgb565(r, g, b): rgb565
@@ -707,15 +590,16 @@ PUB scale(sx, sy, ex, ey, offsx, offsy, size) | x, y, dx, dy, in
             in := point(x, y)
             dx := offsx + (x*size)-(sx*size)
             dy := offsy + (y*size)-(sy*size)
-            box(dx, dy, dx + size, dy + size, in, TRUE)
+            box(dx, dy, dx + size, dy + size, in, true)
 #endif
 
 
 #ifndef GFX_DIRECT
 PUB scrolldown = scroll_down
-PUB scroll_down(sx, sy, ex, ey) | scr_width, src, dest, x, y
+PUB scroll_down(sx, sy, ex, ey) | scr_width, src, dest, x, y, cw
 ' Scroll a region of the display down by 1 pixel
     scr_width := ex-sx
+    cw := ctx.ex-ctx.sx
     repeat y from ey-1 to sy
 #ifdef 1BPP
         ' use Copy() for monochrome display types, until a more efficient
@@ -724,68 +608,72 @@ PUB scroll_down(sx, sy, ex, ey) | scr_width, src, dest, x, y
 #elseifdef SCROLL_USES_COPY
         copy(sx, y, ex, y, sx, y+1)
 #else
-        src := sx + (y * setup.width) * BYTESPERPX
-        dest := sx + ((y+1) * setup.width) * BYTESPERPX
-        MEMMV_NATIVE(setup.p_buffer + dest, setup.p_buffer + src, scr_width)
+        src := sx + (y * cw) * BYTESPERPX
+        dest := sx + ((y+1) * cw) * BYTESPERPX
+        MEMMV_NATIVE(ctx.p_buffer + dest, ctx.p_buffer + src, scr_width)
 #endif
 
 
 #ifndef GFX_DIRECT
-PUB scroll_down_fs(px) | max_pg, y, x, fb_off
+PUB scroll_down_fs(px) | max_pg, y, x, fb_off, cw, ch
 ' Scroll down full screen (1bpp displays only)
 '   px: number of rows or lines to scroll
+    cw := ctx.ex-ctx.sx
+    ch := ctx.ey-ctx.sy
 #ifdef 1BPP
-    px := px <# setup.height                    ' clamp scroll length to display height
-    max_pg := (setup.height / 8)                ' get # of pages from set display height
+    px := px <# cy                    ' clamp scroll length to display height
+    max_pg := (cy / 8)                ' get # of pages from set display height
     repeat px
         repeat y from max_pg to 0               ' bottom-up so it doesn't look strange
-            fb_off := (y * setup.width)
-            repeat x from 0 to setup.xmax
+            fb_off := (y * cw)
+            repeat x from 0 to ctx.ex
                 { scroll down a page of display memory (lsh), then put the bottom-most pixel of the
                     previous page into the top-most pixel of this one }
-                byte[setup.p_buffer][fb_off + x] <<= 1
+                byte[ctx.p_buffer][fb_off + x] <<= 1
                 if ( y > 0 )
                     { don't try to copy pixels from before the first page }
-                    byte[setup.p_buffer][fb_off + x] |= (byte[setup.p_buffer] ...
-                                                         [((y-1) * setup.width) + x ] >> 7) & 1
+                    byte[ctx.p_buffer][fb_off + x] |= (byte[ctx.p_buffer] ...
+                                                         [((y-1) * cw) + x ] >> 7) & 1
 #else
     repeat px
-        scroll_down(0, 0, setup.xmax, setup.ymax)
+        scroll_down(0, 0, ctx.ex, ctx.ey)
 #endif
 #endif
 
 
 PUB scrollleft = scroll_left
-PUB scroll_left(sx, sy, ex, ey) | scr_width, src, dest, y, yoffs
+PUB scroll_left(sx, sy, ex, ey) | scr_width, src, dest, y, yoffs, cw
 ' Scroll a region of the display left by 1 pixel
     scr_width := ex-sx
+    cw := ctx.ex-ctx.ey
     repeat y from sy to ey
 #ifdef 1BPP
         copy(sx, y, ex, y, sx-1, y)
 #elseifdef SCROLL_USES_COPY
         copy(sx, y, ex, y, sx-1, y)
 #else
-        yoffs := (y * setup.width)
+        yoffs := (y * cw)
         src := (sx + yoffs) * BYTESPERPX
         dest := ((0 #> (sx-1)) + yoffs) * BYTESPERPX
-        MEMMV_NATIVE(setup.p_buffer+dest, setup.p_buffer+src, scr_width)
+        MEMMV_NATIVE(ctx.p_buffer+dest, ctx.p_buffer+src, scr_width)
 #endif
 
 
 PUB scrollright = scroll_right
-PUB scroll_right(sx, sy, ex, ey) | scr_width, src, dest, y, yoffs
+PUB scroll_right(sx, sy, ex, ey) | scr_width, src, dest, y, yoffs, cw
 ' Scroll a region of the display right by 1 pixel
     scr_width := ex-sx
+    cw := ctx.ex-ctx.ey
     repeat y from sy to ey
 #ifdef 1BPP
         copy(sx, y, ex, y, sx+1, y)
 #elseifdef SCROLL_USES_COPY
         copy(sx, y, ex, y, sx+1, y)
 #else
-        yoffs := (y * setup.width)
+        yoffs := (y * cw)
         src := (sx + yoffs) * BYTESPERPX
-        dest := (((sx+1) <# setup.width) + yoffs) * BYTESPERPX
-        MEMMV_NATIVE(setup.p_buffer + dest, setup.p_buffer + src, scr_width)
+        dest := (((sx+1) <# cw) + yoffs) * BYTESPERPX
+        MEMMV_NATIVE(ctx.p_buffer + dest, ctx.p_buffer + src, scr_width)
 #endif
 
 
@@ -796,17 +684,17 @@ PUB scroll_up(sx, sy, ex, ey) | sw, y, s, d, p, bpl
 '   ex, ey:     lower-right coordinates of scroll area (must be greater than (sx, sy) )
 
     ' reject bad coordinates
-    if (    (sx < 0) or (sx > _disp_xmax) or (sy < 0) or (sy > _disp_ymax) or ...
-            (ex < 0) or (ex > _disp_xmax) or (ey < 0) or (ey > _disp_ymax) )
+    if (    (sx < 0) or (sx > ctx.ex) or (sy < 0) or (sy > ctx.ey) or ...
+            (ex < 0) or (ex > ctx.ex) or (ey < 0) or (ey > ctx.ey) )
         return
 # ifdef 1BPP
         copy(sx, y, ex, y, sx, y-1)
 # else
     ' prep, pre-calc
-    p := _ptr_drawbuffer
+    p := ctx.p_buffer
     sw := ( ( (ex-sx)+1) * BYTESPERPX) / BPPDIV ' get scroll width in _bytes_
     sx := (sx * BYTESPERPX) / BPPDIV            ' scale left X coord by display color depth
-    bpl := _bytesperln
+    bpl := ctx.stride
 
     repeat y from sy+1 to ey
         s := sx + (y * bpl)                     ' source: sx, sy
@@ -822,62 +710,91 @@ PUB scroll_up(sx, sy, ex, ey) | sw, y, s, d, p, bpl
         else
             bytemove(p+d, p+s, sw)
 
-    line(sx, ey, ex, ey, _bgcolor)              ' erase the line at the bottom of the scroll area
+    line(sx, ey, ex, ey, ctx.bgcolor)              ' erase the line at the bottom of the scroll area
 # endif
 #endif
 
 
 #ifndef GFX_DIRECT
-PUB scroll_up_fs(px) | max_pg, y, x, fb_off
+PUB scroll_up_fs(px) | max_pg, y, x, fb_off, w, ch
 ' Scroll up full screen
 '   px: number of rows or lines to scroll
+    ch := ctx.ey-ctx.sy
 #ifdef 1BPP
-    px := px <# setup.height                    ' clamp scroll length to display height
-    max_pg := (setup.height / 8)                ' get # of pages from set display height
+    px := px <# ch                    ' clamp scroll length to display height
+    max_pg := (ch / 8)                ' get # of pages from set display height
+    w := (ctx.ex-ctx.sx)+1
     repeat px
         repeat y from 0 to max_pg
-            fb_off := (y * setup.width)
-            repeat x from 0 to setup.xmax
+            fb_off := (y * w)
+            repeat x from 0 to ctx.ex
                 { scroll up a page of display memory (rsh), then put the top-most pixel of the next
                     page into the bottom-most pixel of this one }
-                byte[setup.p_buffer][fb_off + x] >>= 1
+                byte[ctx.p_buffer][fb_off + x] >>= 1
                 if ( y < max_pg )
-                    byte[setup.p_buffer][fb_off + x] |= (byte[setup.p_buffer] ...
-                                                         [((y+1) * setup.width) + x] & 1) << 7
+                    byte[ctx.p_buffer][fb_off + x] |= (byte[ctx.p_buffer] ...
+                                                         [((y+1) * w) + x] & 1) << 7
 #else
     repeat px                                   '   scroll up one text row
-        scrollup(0, 0, setup.xmax, setup.ymax)
+        scrollup(0, 0, ctx.ex, ctx.ey)
 #endif
 #endif
 
 
 PUB address = set_address
 PUB set_address(addr=0)
-' Set display buffer address
+' Set context/display buffer address
 '   addr: address of display buffer to use (or 0 to use the driver's internal buffer)
 #ifndef GFX_DIRECT
     { only build this if targetting a buffered display; the framebuffer won't exist otherwise }
     if ( addr == 0 )
         { use the buffer built-in to the display driver }
-        setup.p_buffer := @_framebuffer
+        screen.p_buffer := @_framebuffer
+        ctx.p_buffer := @_framebuffer
     else
         { use an external buffer }
-        setup.p_buffer := addr
+        screen.p_buffer := addr
+        ctx.p_buffer := addr
 #endif
 
 
-PUB set_dims(w, h)
-' Set display dimensions
-'   w: width of display (X-axis) in pixels
-'   h: height of display (Y-axis) in pixels
-    setup.width := w
-    setup.height := h
-    setup.xmax := setup.width - 1
-    setup.ymax := setup.height - 1
+pub set_context_area(sx, sy, ex, ey)
+' Define a graphics context's screen area
 
-    { update the buffer size, and the bytes per line }
-    setup.buffer_sz := ( (setup.width * setup.height) * BYTESPERPX) / BPPDIV
-    setup.line_sz := (setup.width * BYTESPERPX) / BPPDIV
+    ' swap coordinates if the ending set is less than the starting set
+    if ( ex < sx )
+        sx, ex := ex, sx
+    if ( ey < sy )
+        sy, ey := ey, sy
+
+    ctx.sx := 0 #> sx
+    ctx.sy := 0 #> sy
+    ctx.ex := ex <# (screen.width-1)
+    ctx.ey := ey <# (screen.height-1)
+
+    DEBUG("[gfx] set_context_area(", udec_(ctx.sx), udec_(ctx.sy), udec_(ctx.ex), udec_(ctx.ey), ")")
+
+    ' set up the context's pointer as an offset from the screen's base
+    ctx.stride := screen.stride
+    ctx.p_buffer := screen.p_buffer + ( (sx * BYTESPERPX) + (sy * screen.stride) )
+    ctx.buffer_sz := ( (ctx.ey-ctx.sy)+1) * ctx.stride
+
+
+pub set_context_dims(w, h)
+' Set or resize a graphics context (origin coordinates are not changed)
+    ctx.ex := (ctx.sx+w-1) <# (screen.width-1)
+    ctx.ey := (ctx.sy+h-1) <# (screen.height-1)
+
+    ctx.stride := screen.stride
+    ctx.buffer_sz := ( (ctx.ey-ctx.sy)+1) * ctx.stride
+
+
+pub set_display_dims(w, h)
+
+    screen.width := w
+    screen.height := h
+    screen.stride := (w * BYTESPERPX) / BPPDIV
+    screen.buffer_sz := h * screen.stride
 
 
 PUB set_font(ptr_fnt, ptr_setup)
@@ -891,7 +808,7 @@ PUB set_font(ptr_fnt, ptr_setup)
 '       byte[ptr_setup][4]: font last character
 '       byte[ptr_setup][5]: font space between chars (horiz.)
 '       byte[ptr_setup][6]: font space between chars (vert.)
-    font_addr(ptr_fnt)
+    set_font_addr(ptr_fnt)
 '    bytemove(@font.glyph_w, ptr_setup, 7)
     font.glyph_w := byte[ptr_setup][0]
     font.glyph_h := byte[ptr_setup][1]
@@ -906,13 +823,11 @@ PUB set_font(ptr_fnt, ptr_setup)
 
     { check rotation }
     if ( byte[ptr_setup][2] == 0 )
-        set_font_rotation_0deg()
+'        set_font_rotation_0deg()
     elseif ( byte[ptr_setup][2] == 90 )
         set_font_rotation_90deg()
 
 
-PUB fontaddress = font_addr
-PUB font_addr = set_font_addr
 PUB set_font_addr(addr)
 ' Set address of font definition
     font.p_ftable := addr
@@ -924,9 +839,9 @@ PUB set_font_char_range(cmin, cmax)
     font.char_max := cmax
 
 
-PUB set_font_rotation_0deg()
+'PUB set_font_rotation_0deg()
 ' Set putchar function to 0-degree rotated type
-    putchar := @putchar_0deg
+'    putchar := @putchar_0deg
 
 
 PUB set_font_rotation_90deg()
@@ -951,25 +866,30 @@ PUB set_rotation(r) | w, h
         0:
             w := WIDTH                          ' orientation = panel orientation
             h := HEIGHT
-            _rotation := 0
+            ctx.rotation := 0
         90:
             w := HEIGHT                         ' orientation width/height swapped
             h := WIDTH
-            _rotation := 1
+            ctx.rotation := 1
         180:
             w := WIDTH                          ' panel width/height unchanged
             h := HEIGHT
-            _rotation := 2
-
+            ctx.rotation := 2
         270:
             w := HEIGHT                         ' panel width/height swapped
             h := WIDTH
-            _rotation := 3
+            ctx.rotation := 3
         other:
             return
 
-    set_dims(w, h)                              ' set/update drawable screen dimensions
+    set_display_dims(w, h)                              ' set/update drawable screen dimensions
+    set_context_dims(w, h)
     font_sz()                                   ' re-compute text cursor limits
+
+
+pub str_width(p_str): w
+
+    return strsize(p_str) * (font.glyph_w+font.hspace)
 
 
 PUB textcols = text_cols
