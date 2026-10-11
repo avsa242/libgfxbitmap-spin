@@ -77,30 +77,26 @@ PUB bgcolor(col)
 
 
 #ifndef GFX_DIRECT
-PUB bitmap(p_bmap, xs, ys, w, h) | p_fb_end, src, dest, offs
+PUB bitmap(p_bmap, xs, ys, w, h) | src, dest
 ' Copy a bitmap to the display buffer
 '   p_bmap:     pointer to bitmap data
 '   (xs, ys):   upper-left corner of bitmap
 '   w:          width of bitmap, in pixels
 '   h:          number of lines in bitmap
-    w /= BPPDIV                                 ' for color depths less than 8bpp
-    p_fb_end := (ctx.p_buffer+ctx.buffer_sz)-ctx.stride' calc ptr to start of last row of FB memory
-    w := w <# ((ctx.ex-ctx.sx)+1)-xs            ' limit width to fit from here to context width
-    xs *= BYTESPERPX
-    src := p_bmap                               ' init working pointers
-    dest := ctx.p_buffer                     '
+
+    w /= BPPDIV
+    src := p_bmap
+    dest := ctx.p_buffer + ( (ys * screen.stride) + (xs*BYTESPERPX))
+    w := w <# ((ctx.ex-ctx.sx)+1)-xs #> 0
+    h := h <# ((ctx.ey-ctx.sy)+1)-ys #> 0
     repeat
-        ' calc offset from framebuffer and bitmap start,
-        '   then copy the bitmap one line at a time,
-        '   using the display's defined native word size
-        offs := ( (ys * ctx.stride) + xs)
-        dest += offs
-        MEMMV_NATIVE(   dest <# p_fb_end, ...   ' protect against writing past the FB in RAM
-                        src, ...
-                        w)
-        src += offs
-        ys++                                    ' next row
-    while (--h)                                 ' loop if there're more lines
+        MEMMV_NATIVE(dest, src, w)
+        dest += screen.stride                   ' move down a line in RAM
+        if ( dest > (ctx.p_buffer+ctx.buffer_sz) )
+            quit                                ' protect against overrun
+        src += (w * BYTESPERPX)
+    while (--h)                                 ' loop until the last row is copied
+
 #endif
 
 
