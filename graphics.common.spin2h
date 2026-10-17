@@ -4,7 +4,7 @@
     Description:    Generic bitmap-oriented graphics rendering routines
     Author:         Jesse Burt
     Started:        May 19, 2019
-    Updated:        Aug 15, 2026
+    Updated:        Oct 17, 2026
     Copyright (c) 2026 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
@@ -46,15 +46,16 @@ CON
     ' font setup
     struct font_setup_s(...
         long p_ftable, ...                      ' pointer to font data/table
+        long putchar_func, ...
         word cursor_xmax, cursor_ymax, ...      ' pixel-level coordinate maximums
+        byte bit_order, ...
         byte glyph_w, glyph_h, ...              ' glyph dims
         byte rotation, ...                      ' rotation format of font glyph data
         byte char_min, char_max, ...            ' min and max ASCII values represented by font
         byte hspace, vspace, ...                ' pixel spacing between cols/rows
-        byte xscale, yscale, ...                ' glyph scaling factors
-        byte cell_w, cell_h, ...                ' character cell dims (glyph dims+spacing)
         byte cell_xmax, cell_ymax)              ' character cell-level coordinate maximums
-        'xxx maybe putchar func pointer?
+
+    #0, FNT_LSBFIRST, FNT_MSBFIRST
 
 
 VAR
@@ -69,6 +70,46 @@ VAR
 
     { terminal i/o attributes }
     long            _char_attrs
+
+    byte            _nr_fonts
+    byte            _curr_font
+
+
+PUB add_font(p_fnt): i
+' Add/set-up a font
+'   p_fnt:      pointer to the font setup
+'               byte[p_fnt][0]: font width
+'               byte[p_fnt][1]: font height
+'               byte[p_fnt][2]: font rotation
+'               byte[p_fnt][3]: font first character
+'               byte[p_fnt][4]: font last character
+'               byte[p_fnt][x]: start of font glyph data
+'   Returns:    index in font array assigned to new font on success
+'               -1 on failure (no free slots in array)
+    if ( (_nr_fonts < MAX_FONTS) and (p_fnt > 0) )
+        i := _nr_fonts
+        set_font_addr(i, p_fnt)
+        font[i].glyph_w := byte[p_fnt][0]
+        font[i].glyph_h := byte[p_fnt][1]
+        font[i].rotation := byte[p_fnt][2]
+        font[i].char_min := byte[p_fnt][3]
+        font[i].char_max := byte[p_fnt][4]
+        font[i].p_ftable := p_fnt+5
+        DEBUG("[gfx] added font with size ", udec_(font[i].glyph_w), "x", udec_(font[i].glyph_h), " rotation=", udec_(font[i].rotation), " chars ", udec_(font[i].char_min), "-", udec_(font[i].char_max), " at ", uhex_(font[i].p_ftable) )
+        ' set up size
+        set_font_size(i, byte[p_fnt][0], byte[p_fnt][1])
+
+        ' check rotation
+        if ( font[i].rotation == 0 )
+            set_font_rotation_0deg()
+            font[i].putchar_func := @putchar32_0deg
+        else
+            set_font_rotation_90deg()
+            font[i].putchar_func := @putchar_90deg
+        _nr_fonts++
+        return i
+
+    return -1                                   ' error: out of memory/no free font slots
 
 
 PUB bgcolor(col)
@@ -151,7 +192,7 @@ PUB box(sx, sy, ex, ey, c, f=false) | x, y, w
 PUB tx = putchar
 PUB char = putchar
 
-PUB putchar32_0deg(ch) | bpr, lastbyte, p, last_glcol, last_glrow, char_wid, char_ht, rowbyte, bit, gl_row, gl_col
+PUB putchar32_0deg(ch) | bpr, lastbyte, p, last_glcol, last_glrow, char_wid, char_ht, rowbyte, bit, gl_row, gl_col, sb, eb
 ' Low-level character rendering routine
 '   For font file definitions with these characteristics:
 '   * 0 degrees rotation (portrait, top-down)
@@ -167,25 +208,25 @@ PUB putchar32_0deg(ch) | bpr, lastbyte, p, last_glcol, last_glrow, char_wid, cha
 '   * bit order can be normal (MSBit in each glyph word is left edge)
 '       or reversed (MSBit in each glyph word is right edge; build with -DFNT_GLYPH_REV)
 '   * up to 32px wide
-    if ( (ch < font.char_min) or (ch > font.char_max) ) ' don't waste any time if the char is invalid
+    if ( (ch < font[_curr_font].char_min) or (ch > font[_curr_font].char_max) ) ' don't waste any time if the char is invalid
         return
 
-    bpr := font.glyph_w/8                         ' calc number of bytes per glyph row
+    bpr := font[_curr_font].glyph_w/8                         ' calc number of bytes per glyph row
     lastbyte := bpr-1
-    p := font.p_ftable + ( (ch-font.char_min) * (font.glyph_h * bpr))
-    last_glcol := font.glyph_w-1                  ' last column of pixels in font
-    last_glrow := font.glyph_h-1                 '   definition
-    char_wid := font.cell_w * font.xscale         ' scaled character dimensions
-    char_ht := font.cell_h * font.yscale          '
+    p := font[_curr_font].p_ftable + ( (ch-font[_curr_font].char_min) * (font[_curr_font].glyph_h * bpr))
+    last_glcol := font[_curr_font].glyph_w-1                  ' last column of pixels in font
+    last_glrow := font[_curr_font].glyph_h-1                 '   definition
+    char_wid := font[_curr_font].glyph_w + font[_curr_font].hspace
+    char_ht := font[_curr_font].glyph_h + font[_curr_font].vspace
 
     if ( _char_attrs & TERMINAL )
         { process control characters, don't draw them }
         case ch
             LF:
                 { line feed }
-                font.cursor_ymax += char_ht            ' goto next text row
-                if ( font.cursor_ymax > font.cursor_ymax )
-                    font.cursor_ymax -= char_ht        ' scroll the display up a row if we try to go
+                font[_curr_font].cursor_ymax += char_ht            ' goto next text row
+                if ( font[_curr_font].cursor_ymax > font[_curr_font].cursor_ymax )
+                    font[_curr_font].cursor_ymax -= char_ht        ' scroll the display up a row if we try to go
 #ifndef GFX_DIRECT
                     scroll_up_fs(char_ht)       '   past the end
 #endif
@@ -195,11 +236,17 @@ PUB putchar32_0deg(ch) | bpr, lastbyte, p, last_glcol, last_glrow, char_wid, cha
                 cursor.x := 0                  ' goto first text column
                 return
 
-    { read a glyph in from the font table }
+    ' read a glyph in from the font table
+    if ( font[_curr_font].bit_order == FNT_LSBFIRST )
+        sb := 0
+        eb := 7
+    elseif ( font[_curr_font].bit_order == FNT_MSBFIRST )
+        sb := 7
+        eb := 0
     repeat gl_row from 0 to last_glrow          ' for each glyph row
         gl_col := 0
         repeat rowbyte from 0 to lastbyte       ' for each byte in the row
-            repeat bit from 0 to 7
+            repeat bit from sb to eb
                 { normal byte-order glyphs (MSBit in each byte of glyph data is left edge) }
                 if ( byte[p][rowbyte] & (1 << bit) )
                     plot(   cursor.x + gl_col, ...
@@ -211,22 +258,22 @@ PUB putchar32_0deg(ch) | bpr, lastbyte, p, last_glcol, last_glrow, char_wid, cha
                     otherwise, unset pixels will be ignored (effectively transparent) }
                     if ( _char_attrs & DRAWBG )
                         plot(   cursor.x + gl_col, ...
-                                font.cursor_ymax + gl_row, ...
+                                font[_curr_font].cursor_ymax + gl_row, ...
                                 ctx.bgcolor )
                 gl_col++
         p += bpr                                ' point to next row of glyph data
 
     cursor.x += char_wid                       ' goto next column
-
-    if ( cursor.x > font.cursor_xmax )
+{
+    if ( cursor.x > font[_curr_font].cursor_xmax )
         cursor.x := 0                          ' goto the first column of the next row if we try
         cursor.y += char_ht                    '   to go past the right edge
-    if ( cursor.y > font.cursor_ymax )
+    if ( cursor.y > font[_curr_font].cursor_ymax )
         cursor.y -= char_ht                    ' scroll the display up a row if we try to go
 # ifndef GFX_DIRECT
         scroll_up_fs(char_ht)                   '   past the end
 # endif
-
+}
 
 PUB putchar_90deg(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, last_glyph_row, glyph, char_ht, char_wid
 ' Low-level character rendering routine
@@ -240,83 +287,64 @@ PUB putchar_90deg(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, la
 '       %01111100
 '   * byte order can be normal (leftmost bytes first)
 '       or reversed (rightmost bytes first)
-    if ( (ch < font.char_min) or (ch > font.char_max) ) ' don't waste any time if the char is invalid
+    if ( (ch < font[_curr_font].char_min) or (ch > font[_curr_font].char_max) ) ' don't waste any time if the char is invalid
         return
 
-    last_glyph_col := font.glyph_w-1              ' last column of pixels in font
-    last_glyph_row := font.glyph_h-1             '   definition
-    char_wid := font.cell_w * font.xscale         ' scaled character dimensions
-    char_ht := font.cell_h * font.yscale          '
+    last_glyph_col := font[_curr_font].glyph_w-1              ' last column of pixels in font
+    last_glyph_row := font[_curr_font].glyph_h-1             '   definition
+    char_wid := font[_curr_font].glyph_w+font[_curr_font].hspace
+    char_ht := font[_curr_font].glyph_h+font[_curr_font].vspace
 
     if ( _char_attrs & TERMINAL )
-        { process control characters, don't draw them }
+        ' process control characters, don't draw them
         case ch
             LF:
-                { line feed }
+                ' line feed
                 cursor.y += char_ht            ' goto next text row
-                if ( cursor.y > font.cursor_ymax )
+                if ( cursor.y > font[_curr_font].cursor_ymax )
                     cursor.y -= char_ht        ' scroll the display up a row if we try to go
 #ifndef GFX_DIRECT
                     scroll_up_fs(char_ht)       '   past the end
 #endif
                 return
             CR:
-                { carriage return }
+                ' carriage return
                 cursor.x := 0                  ' goto first text column
                 return
 
-    { read a glyph in from the font table }
-    ch *= font.glyph_w
-    if ( (font.xscale == 1) and (font.yscale == 1) )
-        { no scaling; render font 1:1 }
-        repeat glyph_col from 0 to last_glyph_col
-#ifdef FNT_GLYPH_REV
-            { reversed byte order fonts }
-            xs := cursor.x + (font.glyph_w-glyph_col)
-#else
-            { normal byte order fonts }
-            xs := cursor.x + glyph_col
-#endif
-            glyph := ch + glyph_col             ' point to current glyph data
-            repeat glyph_row from 0 to last_glyph_row
-                if ( byte[font.p_ftable][glyph] & (1 << glyph_row) )
+    ' read a glyph in from the font table
+    ch *= font[_curr_font].glyph_w
+
+    ' no scaling; render font 1:1
+    repeat glyph_col from 0 to last_glyph_col
+        ' reversed byte order fonts
+        'xs := cursor.x + (font[_curr_font].glyph_w-glyph_col)
+        ' normal byte order fonts
+        xs := cursor.x + glyph_col
+        glyph := ch + glyph_col             ' point to current glyph data
+        repeat glyph_row from 0 to last_glyph_row
+            if ( byte[font[_curr_font].p_ftable][glyph] & (1 << glyph_row) )
+                plot(   xs, ...
+                        cursor.y + glyph_row, ...
+                        ctx.fgcolor )
+            else
+                if ( _char_attrs & DRAWBG )
+                    ' actually draw the currently set background color (see bgcolor() )
+                    ' NOTE: This incurs a significant speed penalty if enabled
                     plot(   xs, ...
                             cursor.y + glyph_row, ...
-                            ctx.fgcolor )
-                else
-                    if ( _char_attrs & DRAWBG )
-                        { actually draw the currently set background color (see bgcolor() ) }
-                        { NOTE: This incurs a significant speed penalty if enabled }
-                        plot(   xs, ...
-                                cursor.y + glyph_row, ...
-                                ctx.bgcolor )
-    else
-        { scale font rendering up by an integer factor (x, y independently) }
-        { use filled boxes to draw each pixel of the glyph }
-        repeat glyph_col from 0 to last_glyph_col
-            { normal byte order fonts }
-            xs := cursor.x + (glyph_col * font.xscale)
-            xe := (xs + font.xscale)
-            glyph := ch + glyph_col             ' point to current glyph data
-            repeat glyph_row from 0 to last_glyph_row
-                ys := cursor.y + (glyph_row * font.yscale)
-                ye := ys + font.yscale
-                if ( byte[font.p_ftable][glyph] & (1 << glyph_row) )
-                    box(xs, ys, xe, ye, ctx.fgcolor, true)
-                else
-                    if ( _char_attrs & DRAWBG )
-                        box(xs, ys, xe, ye, ctx.bgcolor, true)
+                            ctx.bgcolor )
 
     cursor.x += char_wid                       ' goto next column
-    if ( cursor.x > font.cursor_xmax )
+{    if ( cursor.x > font[_curr_font].cursor_xmax )
         cursor.x := 0                          ' goto the first column of the next row if we try
         cursor.y += char_ht                    '   to go past the right edge
-    if ( cursor.y > font.cursor_ymax )
+    if ( cursor.y > font[_curr_font].cursor_ymax )
         cursor.y -= char_ht                    ' scroll the display up a row if we try to go
 # ifndef GFX_DIRECT
         scroll_up_fs(char_ht)                   '   past the end
 # endif
-
+}
 
 CON
 
@@ -325,7 +353,6 @@ CON
     TERMINAL    = (1 << 1)                      ' process control characters
     TEXT_WRAP   = (1 << 2)                      ' wrap text when crossing display bounds
 
-PUB charattrs = char_attrs
 PUB char_attrs(attrs)
 ' Set character attributes
     _char_attrs := attrs
@@ -395,48 +422,11 @@ PUB fgcolor(col)
     ctx.fgcolor := col
 
 
-PUB fontheight = font_height
 PUB font_height(): curr_ht
 ' Return the set font height
     return font.glyph_h
 
 
-PUB fontscale = font_scl
-PUB font_scl(x, y): curr_scl
-' Set font rendering scale factor
-'   Valid values: 1..8
-    font.xscale := 1 #> x <# 8
-    font.yscale := 1 #> y <# 8
-
-
-PUB fontsize = font_sz
-PUB font_sz(w=0, h=0)
-' Set expected dimensions of font glyphs
-'   w, h:   dimensions (optional; if unspecified, the last set values will be used to
-'               recompute cursor limits)
-'   NOTE: This has a direct impact on the number of text columns and rows
-'   NOTE: font_spacing() should be called before calling this method
-    font.glyph_w := w
-    font.glyph_h := h
-    font.xscale := 1 #> font.xscale
-    font.yscale := 1 #> font.yscale
-
-    font.cell_w := (font.glyph_w + font.hspace)     ' calc overall character cell
-    font.cell_h := (font.glyph_h + font.vspace)     '   dims (font size + spacing)
-    font.cursor_xmax := (ctx.ex - font.cell_w)  ' calc maximum x, y character
-    font.cursor_ymax := (ctx.ey - font.cell_h) '   pixel position
-    font.cell_xmax := ( (ctx.ex-ctx.sx+1) / font.cell_w)-1   '   and character-cell position
-    font.cell_ymax := ( (ctx.ey-ctx.sy+1) / font.cell_h)-1
-
-
-PUB fontspacing = font_spacing
-PUB font_spacing(h, v)
-' Set spacing between character cells (horizontally, vertically)
-    font.hspace := h
-    font.vspace := v
-
-
-PUB fontwidth = font_width
 PUB font_width(): curr_wid
 ' Return the set font width
     return font.glyph_w
@@ -793,51 +783,40 @@ pub set_display_dims(w, h)
     screen.buffer_sz := h * screen.stride
 
 
-PUB set_font(ptr_fnt, ptr_setup)
-' Setup the font and character routines
-'   ptr_fnt: pointer to the font glyph table (the font bitmaps)
-'   ptr_setup: pointer to 7-byte structure containing font characteristics:
-'       byte[ptr_setup][0]: font width
-'       byte[ptr_setup][1]: font height
-'       byte[ptr_setup][2]: font rotation
-'       byte[ptr_setup][3]: font first character
-'       byte[ptr_setup][4]: font last character
-'       byte[ptr_setup][5]: font space between chars (horiz.)
-'       byte[ptr_setup][6]: font space between chars (vert.)
-    set_font_addr(ptr_fnt)
-'    bytemove(@font.glyph_w, ptr_setup, 7)
-    font.glyph_w := byte[ptr_setup][0]
-    font.glyph_h := byte[ptr_setup][1]
-    font.rotation := byte[ptr_setup][2]
-    font.char_min := byte[ptr_setup][3]
-    font.char_max := byte[ptr_setup][4]
-    font.hspace := byte[ptr_setup][5]
-    font.vspace := byte[ptr_setup][6]
-
-    { set up size, spacing }
-    font_sz( byte[ptr_setup][0], byte[ptr_setup][1] )
-
-    { check rotation }
-    if ( byte[ptr_setup][2] == 0 )
-'        set_font_rotation_0deg()
-    elseif ( byte[ptr_setup][2] == 90 )
-        set_font_rotation_90deg()
+pub set_font(idx)
+' Set the currently active font
+'   idx:    font number
+    if ( (idx >= 0) and (idx < MAX_FONTS) )
+        _curr_font := idx
+        putchar := font[idx].putchar_func
 
 
-PUB set_font_addr(addr)
-' Set address of font definition
-    font.p_ftable := addr
+PUB set_font_addr(idx, p_font)
+' Set address of start of font glyph data
+'   idx:    font number
+'   p_font: pointer to font glyph data
+    if ( idx < MAX_FONTS )
+        font[idx].p_ftable := p_font
 
 
-PUB set_font_char_range(cmin, cmax)
+pub set_font_bit_order(idx, bo)
+' Set the bit/pixel order of a font's glyphs
+'   idx:    font index
+'   bo:     bit order (FNT_LSBFIRST, FNT_MSBFIRST)
+    if ( idx < MAX_FONTS )
+        font[idx].bit_order := bo
+
+
+PUB set_font_char_range(idx, cmin, cmax)
 ' Set range of ASCII values contained in font
-    font.char_min := cmin
-    font.char_max := cmax
+    if ( idx < MAX_FONTS )
+        font[idx].char_min := cmin
+        font[idx].char_max := cmax
 
 
-'PUB set_font_rotation_0deg()
-' Set putchar function to 0-degree rotated type
-'    putchar := @putchar_0deg
+pub set_font_rotation_0deg()
+
+    putchar := @putchar32_0deg
 
 
 PUB set_font_rotation_90deg()
@@ -845,9 +824,33 @@ PUB set_font_rotation_90deg()
     putchar := @putchar_90deg
 
 
-PUB set_putchar(ptr)
+PUB set_font_size(idx, w=0, h=0)
+' Set expected dimensions of font glyphs (fixed-width fonts)
+'   w, h:   dimensions (optional; if unspecified, the last set values will be used to
+'               recompute cursor limits)
+'   NOTE: This has a direct impact on the number of text columns and rows
+'   NOTE: font_spacing() should be called before calling this method
+    if ( idx < MAX_FONTS )
+        font[idx].glyph_w := w
+        font[idx].glyph_h := h
+        font[idx].cursor_xmax := (ctx.ex - font[idx].glyph_w)  ' calc maximum x, y character
+        font[idx].cursor_ymax := (ctx.ey - font[idx].glyph_h) '   pixel position
+        font[idx].cell_xmax := ( (ctx.ex-ctx.sx+1) / font[idx].glyph_w)-1   '   and character-cell position
+        font[idx].cell_ymax := ( (ctx.ey-ctx.sy+1) / font[idx].glyph_h)-1
+
+
+PUB set_font_spacing(idx, h, v)
+' Set spacing between character cells (horizontally, vertically)
+    if ( idx < MAX_FONTS )
+        font[idx].hspace := h
+        font[idx].vspace := v
+        DEBUG("[gfx] set_font_spacing(", udec_(idx), udec_(font[idx].hspace), udec_(font[idx].vspace), ")")
+
+
+PUB set_putchar(p_func)
 ' Set a custom putchar function
-    putchar := ptr
+'   p_func:     pointer to function
+    putchar := p_func
 
 
 PUB set_rotation(r) | w, h
@@ -880,23 +883,23 @@ PUB set_rotation(r) | w, h
 
     set_display_dims(w, h)                              ' set/update drawable screen dimensions
     set_context_dims(w, h)
-    font_sz()                                   ' re-compute text cursor limits
+    'set_font_size(_curr_font)                                   ' re-compute text cursor limits
 
 
 pub str_width(p_str): w
 
-    return strsize(p_str) * (font.glyph_w+font.hspace)
+    return strsize(p_str) * (font[_curr_font].glyph_w+font[_curr_font].hspace)
 
 
 PUB textcols = text_cols
 PUB text_cols(): cols
 ' Returns number of displayable text columns, based on set display width, font width, and scale
-    return font.cell_xmax / font.xscale
+    return font[_curr_font].cell_xmax
 
 PUB textrows = text_rows
 PUB text_rows(): rows
 ' Returns number of displayable text rows, based on set display height, font height, and scale
-    return font.cell_ymax / font.yscale
+    return font[_curr_font].cell_ymax
 
 
 #ifndef HAS_VLINE
