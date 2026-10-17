@@ -738,6 +738,8 @@ pub set_address(addr=0)
 
 pub set_context_area(sx, sy, ex, ey)
 ' Define a graphics context's screen area
+'   sx, sy: starting (upper-left) corner of area
+'   ex, ey: ending (lower-right) corner of area
 
     ' swap coordinates if the ending set is less than the starting set
     if ( ex < sx )
@@ -768,11 +770,12 @@ pub set_context_dims(w, h)
 
 
 pub set_display_dims(w, h)
-
+' Set display dimensions
+'   w, h:   dimensions (pixels)
     screen.width := w
     screen.height := h
-    screen.stride := (w * BYTESPERPX) / BPPDIV
-    screen.buffer_sz := h * screen.stride
+    screen.stride := (w * BYTESPERPX) / BPPDIV  ' bytes per line
+    screen.buffer_sz := h * screen.stride       ' bytes in full screen
 
 
 pub set_font(idx)
@@ -807,7 +810,7 @@ pub set_font_char_range(idx, cmin, cmax)
 
 
 pub set_font_rotation_0deg()
-
+' Set putchar function to 0-degree (no rotation) type
     putchar := @putchar32_0deg
 
 
@@ -879,7 +882,11 @@ pub set_rotation(r) | w, h
 
 
 pub str_width(p_str): w
+' Get the width of a string in pixels
+'   p_str:      pointer to string
+'   Returns:    string width (pixels)
 
+    ' use the current font's glyph width and inter-character spacing to find the total width
     return strsize(p_str) * (font[ctx.curr_font].glyph_w+font[ctx.curr_font].hspace)
 
 
