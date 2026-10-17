@@ -52,8 +52,7 @@ CON
         byte glyph_w, glyph_h, ...              ' glyph dims
         byte rotation, ...                      ' rotation format of font glyph data
         byte char_min, char_max, ...            ' min and max ASCII values represented by font
-        byte hspace, vspace, ...                ' pixel spacing between cols/rows
-        byte cell_xmax, cell_ymax)              ' character cell-level coordinate maximums
+        byte hspace, vspace)                    ' pixel spacing between cols/rows
 
     #0, FNT_LSBFIRST, FNT_MSBFIRST
 
@@ -827,8 +826,6 @@ pub set_font_size(idx, w=0, h=0)
     if ( idx < MAX_FONTS )
         font[idx].glyph_w := w
         font[idx].glyph_h := h
-        font[idx].cell_xmax := ( (ctx.ex-ctx.sx+1) / font[idx].glyph_w)-1   '   and character-cell position
-        font[idx].cell_ymax := ( (ctx.ey-ctx.sy+1) / font[idx].glyph_h)-1
 
 
 pub set_font_spacing(idx, h, v)
@@ -887,13 +884,18 @@ pub str_width(p_str): w
     return strsize(p_str) * (font[ctx.curr_font].glyph_w+font[ctx.curr_font].hspace)
 
 
-pub text_cols(): cols
-' Returns number of displayable text columns, based on set display width, font width, and scale
-    return font[ctx.curr_font].cell_xmax
+pub text_cols(): c
+' Returns number of displayable text columns, based on:
+'   * context width
+'   * current font width
+    return ( (ctx.ex-ctx.sx+1) / font[ctx.curr_font].glyph_w )
 
-pub text_rows(): rows
-' Returns number of displayable text rows, based on set display height, font height, and scale
-    return font[ctx.curr_font].cell_ymax
+
+pub text_rows(): r
+' Returns number of displayable text rows, based on:
+'   * context height
+'   * current font height
+    return ( (ctx.ey-ctx.sy+1) / font[ctx.curr_font].glyph_h )
 
 
 #ifndef HAS_VLINE
