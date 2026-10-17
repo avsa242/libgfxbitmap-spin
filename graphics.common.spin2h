@@ -48,7 +48,6 @@ CON
     struct font_setup_s(...
         long p_ftable, ...                      ' pointer to font data/table
         long putchar_func, ...
-        word cursor_xmax, cursor_ymax, ...      ' pixel-level coordinate maximums
         byte bit_order, ...
         byte glyph_w, glyph_h, ...              ' glyph dims
         byte rotation, ...                      ' rotation format of font glyph data
@@ -221,16 +220,16 @@ pub putchar32_0deg(ch) | bpr, lastbyte, p, last_glcol, last_glrow, char_wid, cha
         { process control characters, don't draw them }
         case ch
             LF:
-                { line feed }
-                font[ctx.curr_font].cursor_ymax += char_ht            ' goto next text row
-                if ( font[ctx.curr_font].cursor_ymax > font[ctx.curr_font].cursor_ymax )
-                    font[ctx.curr_font].cursor_ymax -= char_ht        ' scroll the display up a row if we try to go
+                ' line feed
+                cursor.y += char_ht            ' goto next text row
+                if ( cursor.y > ctx.ey )
+                    cursor.y -= char_ht        ' scroll the display up a row if we try to go
 #ifndef GFX_DIRECT
                     scroll_up_fs(char_ht)       '   past the end
 #endif
                 return
             CR:
-                { carriage return }
+                ' carriage return
                 cursor.x := 0                  ' goto first text column
                 return
 
@@ -256,22 +255,22 @@ pub putchar32_0deg(ch) | bpr, lastbyte, p, last_glcol, last_glrow, char_wid, cha
                     otherwise, unset pixels will be ignored (effectively transparent) }
                     if ( _char_attrs & DRAWBG )
                         plot(   cursor.x + gl_col, ...
-                                font[ctx.curr_font].cursor_ymax + gl_row, ...
+                                cursor.y + gl_row, ...
                                 ctx.bgcolor )
                 gl_col++
         p += bpr                                ' point to next row of glyph data
 
     cursor.x += char_wid                       ' goto next column
-{
-    if ( cursor.x > font[ctx.curr_font].cursor_xmax )
+
+    if ( cursor.x > ctx.ex-font[ctx.curr_font].glyph_w )
         cursor.x := 0                          ' goto the first column of the next row if we try
         cursor.y += char_ht                    '   to go past the right edge
-    if ( cursor.y > font[ctx.curr_font].cursor_ymax )
+    if ( cursor.y > ctx.ey-font[ctx.curr_font].glyph_h )
         cursor.y -= char_ht                    ' scroll the display up a row if we try to go
 # ifndef GFX_DIRECT
         scroll_up_fs(char_ht)                   '   past the end
 # endif
-}
+
 
 pub putchar_90deg(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, last_glyph_row, glyph, char_ht, char_wid
 ' Low-level character rendering routine
@@ -299,7 +298,7 @@ pub putchar_90deg(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, la
             LF:
                 ' line feed
                 cursor.y += char_ht            ' goto next text row
-                if ( cursor.y > font[ctx.curr_font].cursor_ymax )
+                if ( cursor.y > ctx.ey-font[ctx.curr_font].glyph_h )
                     cursor.y -= char_ht        ' scroll the display up a row if we try to go
 #ifndef GFX_DIRECT
                     scroll_up_fs(char_ht)       '   past the end
@@ -334,15 +333,15 @@ pub putchar_90deg(ch) | glyph_col, glyph_row, xs, ys, xe, ye, last_glyph_col, la
                             ctx.bgcolor )
 
     cursor.x += char_wid                       ' goto next column
-{    if ( cursor.x > font[ctx.curr_font].cursor_xmax )
+    if ( cursor.x > ctx.ex-font[ctx.curr_font].glyph_w )
         cursor.x := 0                          ' goto the first column of the next row if we try
         cursor.y += char_ht                    '   to go past the right edge
-    if ( cursor.y > font[ctx.curr_font].cursor_ymax )
+    if ( cursor.y > ctx.ey-font[ctx.curr_font].glyph_h )
         cursor.y -= char_ht                    ' scroll the display up a row if we try to go
 # ifndef GFX_DIRECT
         scroll_up_fs(char_ht)                   '   past the end
 # endif
-}
+
 
 CON
 
@@ -828,8 +827,6 @@ pub set_font_size(idx, w=0, h=0)
     if ( idx < MAX_FONTS )
         font[idx].glyph_w := w
         font[idx].glyph_h := h
-        font[idx].cursor_xmax := (ctx.ex - font[idx].glyph_w)  ' calc maximum x, y character
-        font[idx].cursor_ymax := (ctx.ey - font[idx].glyph_h) '   pixel position
         font[idx].cell_xmax := ( (ctx.ex-ctx.sx+1) / font[idx].glyph_w)-1   '   and character-cell position
         font[idx].cell_ymax := ( (ctx.ey-ctx.sy+1) / font[idx].glyph_h)-1
 
