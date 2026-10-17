@@ -18,7 +18,13 @@
 # define MAX_FONTS 1
 #endif
 
-CON
+con
+
+    ' terminal settings
+    TERM_DRAWBG =           (1 << 0)            ' draw background color
+    TERM_PROC_CTRL_CHARS =  (1 << 1)            ' process control characters
+    TERM_TEXT_WRAP =        (1 << 2)            ' wrap text when crossing display bounds
+
 
     ' display structure definitions
     struct cursor_s(...
@@ -39,6 +45,7 @@ CON
         long buffer_sz, ...                     ' size of the buffer in bytes
         long fgcolor, ...
         long bgcolor, ...
+        long term_cfg, ...
         word stride, ...                        ' xxx is this really needed?
         word sx, sy, ...                        ' display area
         word ex, ey, ...
@@ -66,9 +73,6 @@ VAR
     disp_setup_s    screen
     disp_context_s  ctx'[MAX_CONTEXTS]
     font_setup_s    font[MAX_FONTS]
-
-    { terminal i/o attributes }
-    long            _char_attrs
 
     byte            _nr_fonts
 
@@ -215,7 +219,7 @@ pub putchar32_0deg(ch) | bpr, lastbyte, p, lgr, ch_w, ch_h, rowbyte, bit, gr, gc
     ch_w := font[ctx.curr_font].glyph_w + font[ctx.curr_font].hspace
     ch_h := font[ctx.curr_font].glyph_h + font[ctx.curr_font].vspace
 
-    if ( _char_attrs & TERMINAL )
+    if ( ctx.term_cfg & TERM_PROC_CTRL_CHARS )
         { process control characters, don't draw them }
         case ch
             LF:
@@ -253,10 +257,10 @@ pub putchar32_0deg(ch) | bpr, lastbyte, p, lgr, ch_w, ch_h, rowbyte, bit, gr, gc
                             ctx.cursor.y + gr, ...
                             ctx.fgcolor )
                 else
-                    ' draw the background color for unset pixels if the DRAWBG attribute is set
-                    '   ( see char_attr() )
+                    ' draw the background color for unset pixels if the TERM_DRAWBG attribute is set
+                    '   ( see set_term_flags() )
                     ' otherwise, unset pixels will be ignored (effectively transparent)
-                    if ( _char_attrs & DRAWBG )
+                    if ( ctx.term_cfg & TERM_DRAWBG )
                         plot(   ctx.cursor.x + gc, ...
                                 ctx.cursor.y + gr, ...
                                 ctx.bgcolor )
@@ -287,7 +291,8 @@ pub putchar_90deg(ch) | gc, gr, xs, ys, xe, ye, lgc, lgr, glyph, ch_h, ch_w
 '       %01111100
 '   * byte order can be normal (leftmost bytes first)
 '       or reversed (rightmost bytes first)
-    if ( (ch < font[ctx.curr_font].char_min) or (ch > font[ctx.curr_font].char_max) ) ' don't waste any time if the char is invalid
+    if ( (ch < font[ctx.curr_font].char_min) or (ch > font[ctx.curr_font].char_max) )
+        ' don't waste any time if the char is invalid
         return
 
     lgc := font[ctx.curr_font].glyph_w-1        ' last column of pixels in font
@@ -295,7 +300,7 @@ pub putchar_90deg(ch) | gc, gr, xs, ys, xe, ye, lgc, lgr, glyph, ch_h, ch_w
     ch_w := font[ctx.curr_font].glyph_w+font[ctx.curr_font].hspace
     ch_h := font[ctx.curr_font].glyph_h+font[ctx.curr_font].vspace
 
-    if ( _char_attrs & TERMINAL )
+    if ( ctx.term_cfg & TERM_PROC_CTRL_CHARS )
         ' process control characters, don't draw them
         case ch
             LF:
@@ -328,7 +333,7 @@ pub putchar_90deg(ch) | gc, gr, xs, ys, xe, ye, lgc, lgr, glyph, ch_h, ch_w
                         ctx.cursor.y + gr, ...
                         ctx.fgcolor )
             else
-                if ( _char_attrs & DRAWBG )
+                if ( ctx.term_cfg & TERM_DRAWBG )
                     ' actually draw the currently set background color (see bgcolor() )
                     ' NOTE: This incurs a significant speed penalty if enabled
                     plot(   xs, ...
@@ -345,18 +350,6 @@ pub putchar_90deg(ch) | gc, gr, xs, ys, xe, ye, lgc, lgr, glyph, ch_h, ch_w
 # ifndef GFX_DIRECT
         scroll_up_fs(ch_h)                      '   past the end
 # endif
-
-
-CON
-
-    { character attributes }
-    DRAWBG      = (1 << 0)                      ' draw background color
-    TERMINAL    = (1 << 1)                      ' process control characters
-    TEXT_WRAP   = (1 << 2)                      ' wrap text when crossing display bounds
-
-pub char_attrs(attrs)
-' Set character attributes
-    _char_attrs := attrs
 
 
 pub circle(cx, cy, r, c, f=false) | x, y, err, cdx, cdy, cht, rsq
@@ -413,8 +406,8 @@ pub cut(sx, sy, ex, ey, dx, dy) | x, y, tmp
     repeat y from sy to ey
         repeat x from sx to ex
             tmp := point(x, y)
-            plot((dx + x)-sx, (dy + y)-sy, tmp)             ' Copy to destination region
-            plot(x, y, ctx.bgcolor)                            ' Cut the original region
+            plot((dx + x)-sx, (dy + y)-sy, tmp) ' copy to destination region
+            plot(x, y, ctx.bgcolor)             ' "cut" the original region
 #endif
 
 
@@ -492,9 +485,9 @@ pub line(x1, y1, x2, y2, c) | sx, sy, ddx, ddy, err, e2
 
 
 pub pos_xy(x, y)
-' Set text draw position, in character-cell col and row
-    ctx.cursor.x := x                              ' leave untouched; plot() will validate whether
-    ctx.cursor.y := y                              '   any pixels are offscreen
+' Set cursor position (pixels)
+    ctx.cursor.x := x
+    ctx.cursor.y := y
 
 
 pub r5g6b5_rgb565(r, g, b): rgb565
@@ -587,7 +580,7 @@ pub scroll_down(sx, sy, ex, ey) | scr_width, src, dest, x, y, cw
     cw := ctx.ex-ctx.sx
     repeat y from ey-1 to sy
 #ifdef 1BPP
-        ' use Copy() for monochrome display types, until a more efficient
+        ' use copy() for monochrome display types, until a more efficient
         '   method can be devised
         copy(sx, y, ex, y, sx, y+1)
 #elseifdef SCROLL_USES_COPY
@@ -606,8 +599,8 @@ pub scroll_down_fs(px) | max_pg, y, x, fb_off, cw, ch
     cw := ctx.ex-ctx.sx
     ch := ctx.ey-ctx.sy
 #ifdef 1BPP
-    px := px <# cy                    ' clamp scroll length to display height
-    max_pg := (cy / 8)                ' get # of pages from set display height
+    px := px <# cy                              ' clamp scroll length to display height
+    max_pg := (cy / 8)                          ' get # of pages from set display height
     repeat px
         repeat y from max_pg to 0               ' bottom-up so it doesn't look strange
             fb_off := (y * cw)
@@ -692,7 +685,7 @@ pub scroll_up(sx, sy, ex, ey) | sw, y, s, d, p, bpl
         else
             bytemove(p+d, p+s, sw)
 
-    line(sx, ey, ex, ey, ctx.bgcolor)              ' erase the line at the bottom of the scroll area
+    line(sx, ey, ex, ey, ctx.bgcolor)           ' erase the line at the bottom of the scroll area
 # endif
 #endif
 
@@ -703,8 +696,8 @@ pub scroll_up_fs(px) | max_pg, y, x, fb_off, w, ch
 '   px: number of rows or lines to scroll
     ch := ctx.ey-ctx.sy
 #ifdef 1BPP
-    px := px <# ch                    ' clamp scroll length to display height
-    max_pg := (ch / 8)                ' get # of pages from set display height
+    px := px <# ch                              ' clamp scroll length to display height
+    max_pg := (ch / 8)                          ' get # of pages from set display height
     w := (ctx.ex-ctx.sx)+1
     repeat px
         repeat y from 0 to max_pg
@@ -880,6 +873,11 @@ pub set_rotation(r) | w, h
     'set_font_size(ctx.curr_font)                                   ' re-compute text cursor limits
 
 
+pub set_term_flags(cfg)
+' Set terminal I/O configuration flags
+    ctx.term_cfg := cfg
+
+
 pub str_width(p_str): w
 ' Get the width of a string in pixels
 '   p_str:      pointer to string
@@ -905,7 +903,7 @@ pub text_rows(): r
 
 #ifndef HAS_VLINE
 pub vline(x, ys, len, c) | y
-' Draw horizontal line
+' Draw vertical line
 '   x:      x-position (pixels)
 '   ys:     y start-position (pixels)
 '   len:    length of line (pixels)
