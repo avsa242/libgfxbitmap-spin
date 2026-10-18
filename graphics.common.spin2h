@@ -119,7 +119,7 @@ pub bgcolor(col)
 
 
 #ifndef GFX_DIRECT
-pub bitmap(p_bmap, sx, sy, w, h) | sw, src, dest
+pub bitmap(p_bmap, sx, sy, w, h) | sw, src, dest, ce
 ' Copy a bitmap to the display buffer
 '   p_bmap:     pointer to bitmap data
 '   (sx, sy):   upper-left corner of bitmap
@@ -129,16 +129,17 @@ pub bitmap(p_bmap, sx, sy, w, h) | sw, src, dest
     w /= BPPDIV
     src := p_bmap
     dest := ctx.p_buffer + ( (sy * screen.stride) + (sx*BYTESPERPX))
-    sw := w                                     ' cache source bitmap width
+    sw := w * BYTESPERPX                        ' cache source bitmap width
+    ce := ctx.p_buffer + ctx.buffer_sz-1        ' end of context buffer in RAM
 
     w := w <# ((ctx.ex-ctx.sx)+1)-sx #> 0       ' clamp output size to clipped area
     h := h <# ((ctx.ey-ctx.sy)+1)-sy #> 0
     repeat
         MEMMV_NATIVE(dest, src, w)
         dest += screen.stride                   ' move down a line in RAM
-        if ( dest > (ctx.p_buffer+ctx.buffer_sz) )
+        if ( dest > ce )
             quit                                ' protect against overrun
-        src += (sw * BYTESPERPX)                ' go to the next line of the source bitmap
+        src += sw                               ' go to the next line of the source bitmap
     while (--h)                                 ' loop until the last row is copied
 
 #endif
