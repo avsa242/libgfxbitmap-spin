@@ -272,13 +272,14 @@ pub putchar32_0deg(ch) | bpr, lastbyte, p, lgr, ch_w, ch_h, rowbyte, bit, gr, gc
 
     ' handle scrolling or wrapping around screen/context edges
     ctx.cursor.x += ch_w                        ' goto next column
-    if ( ctx.cursor.x > (ctx.ex-font[ctx.curr_font].glyph_w) )
-        ctx.cursor.x := 0                       ' goto the first column of the next row if we try
-        ctx.cursor.y += ch_h                    '   to go past the right edge
-    if ( ctx.cursor.y > (ctx.ey-font[ctx.curr_font].glyph_h) )
-        ctx.cursor.y -= ch_h                    ' scroll the display up a row if we try to go
+    if ( ctx.term_cfg & TERM_TEXT_WRAP )
+        if ( ctx.cursor.x > (ctx.ex-font[ctx.curr_font].glyph_w) )
+            ctx.cursor.x := 0                       ' goto the first column of the next row if we try
+            ctx.cursor.y += ch_h                    '   to go past the right edge
+        if ( ctx.cursor.y > (ctx.ey-font[ctx.curr_font].glyph_h) )
+            ctx.cursor.y -= ch_h                    ' scroll the display up a row if we try to go
 # ifndef GFX_DIRECT
-        scroll_up_fs(ch_h)                      '   past the end
+            scroll_up_fs(ch_h)                      '   past the end
 # endif
 
 
@@ -345,13 +346,14 @@ pub putchar_90deg(ch) | gc, gr, xs, ys, xe, ye, lgc, lgr, glyph, ch_h, ch_w
 
     ' handle scrolling or wrapping around screen/context edges
     ctx.cursor.x += ch_w                        ' goto next column
-    if ( ctx.cursor.x > (ctx.ex-font[ctx.curr_font].glyph_w) )
-        ctx.cursor.x := 0                       ' goto the first column of the next row if we try
-        ctx.cursor.y += ch_h                    '   to go past the right edge
-    if ( ctx.cursor.y > (ctx.ey-font[ctx.curr_font].glyph_h) )
-        ctx.cursor.y -= ch_h                    ' scroll the display up a row if we try to go
+    if ( ctx.term_cfg & TERM_TEXT_WRAP )
+        if ( ctx.cursor.x > (ctx.ex-font[ctx.curr_font].glyph_w) )
+            ctx.cursor.x := 0                       ' goto the first column of the next row if we try
+            ctx.cursor.y += ch_h                    '   to go past the right edge
+        if ( ctx.cursor.y > (ctx.ey-font[ctx.curr_font].glyph_h) )
+            ctx.cursor.y -= ch_h                    ' scroll the display up a row if we try to go
 # ifndef GFX_DIRECT
-        scroll_up_fs(ch_h)                      '   past the end
+            scroll_up_fs(ch_h)                      '   past the end
 # endif
 
 
