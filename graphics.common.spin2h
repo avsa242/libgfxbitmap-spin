@@ -883,13 +883,17 @@ pub set_term_flags(cfg)
     ctx.term_cfg := cfg
 
 
-pub str_width(p_str): w
+pub str_width(p_str, fidx=-1): w
 ' Get the width of a string in pixels
 '   p_str:      pointer to string
+'   fidx:       font index/slot number to use to calculate width (optional; default is current one)
 '   Returns:    string width (pixels)
 
     ' use the current font's glyph width and inter-character spacing to find the total width
-    return strsize(p_str) * (font[ctx.curr_font].glyph_w+font[ctx.curr_font].hspace)
+    if ( fidx < 0 )
+        fidx := ctx.curr_font
+
+    return strsize(p_str) * (font[fidx].glyph_w+font[fidx].hspace)
 
 
 pub text_cols(): c
