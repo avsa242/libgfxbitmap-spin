@@ -421,14 +421,26 @@ pub fgcolor(col)
     ctx.fgcolor := col
 
 
-pub font_height(): curr_ht
+pub font_height(ch=0, fidx=-1): h
 ' Return the set font height
-    return font.glyph_h
+'   ch:         glyph to read height of (currently unused)
+'   fidx:       font index/slot # (optional; default is the context's current font)
+'   Returns:    font glyph height (pixels)
+    if ( fidx < 0 )
+        fidx := ctx.curr_font
+
+    return font[fidx].glyph_h
 
 
-pub font_width(): curr_wid
+pub font_width(ch=0, fidx=-1): w
 ' Return the set font width
-    return font.glyph_w
+'   ch:         glyph to read width of (currently unused)
+'   fidx:       font index/slot # (optional; default is the context's current font)
+'   Returns:    font glyph width (pixels)
+    if ( fidx < 0 )
+        fidx := ctx.curr_font
+
+    return font[fidx].glyph_w
 
 
 pub get_address(): addr
