@@ -4,7 +4,7 @@
     Description:    Generic bitmap-oriented graphics rendering routines
     Author:         Jesse Burt
     Started:        May 19, 2019
-    Updated:        Oct 17, 2026
+    Updated:        Oct 18, 2026
     Copyright (c) 2026 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
@@ -732,8 +732,8 @@ pub set_address(addr=0)
 #endif
 
 
-pub set_context_area(sx, sy, ex, ey)
-' Define a graphics context's screen area
+pub set_clip_rect(sx, sy, ex, ey)
+' Define the current clip region
 '   sx, sy: starting (upper-left) corner of area
 '   ex, ey: ending (lower-right) corner of area
 
@@ -748,7 +748,7 @@ pub set_context_area(sx, sy, ex, ey)
     ctx.ex := ex <# (screen.width-1)
     ctx.ey := ey <# (screen.height-1)
 
-    DEBUG("[gfx] set_context_area(", udec_(ctx.sx), udec_(ctx.sy), udec_(ctx.ex), udec_(ctx.ey), ")")
+    DEBUG("[gfx] set_clip_rect(", udec_(ctx.sx), udec_(ctx.sy), udec_(ctx.ex), udec_(ctx.ey), ")")
 
     ' set up the context's pointer as an offset from the screen's base
     ctx.stride := screen.stride
@@ -756,8 +756,8 @@ pub set_context_area(sx, sy, ex, ey)
     ctx.buffer_sz := ( (ctx.ey-ctx.sy)+1) * ctx.stride
 
 
-pub set_context_dims(w, h)
-' Set or resize a graphics context (origin coordinates are not changed)
+pub set_clip_dims(w, h)
+' Set or resize the clip region dimensions (origin coordinates are not changed)
     ctx.ex := (ctx.sx+w-1) <# (screen.width-1)
     ctx.ey := (ctx.sy+h-1) <# (screen.height-1)
 
@@ -868,9 +868,9 @@ pub set_rotation(r) | w, h
         other:
             return
 
-    set_display_dims(w, h)                              ' set/update drawable screen dimensions
-    set_context_dims(w, h)
-    'set_font_size(ctx.curr_font)                                   ' re-compute text cursor limits
+    set_display_dims(w, h)                      ' set/update drawable screen dimensions
+    set_clip_dims(w, h)
+    'set_font_size(ctx.curr_font)                ' re-compute text cursor limits
 
 
 pub set_term_flags(cfg)
