@@ -939,7 +939,6 @@ PUB set_rotation(r) | w, h
             w := WIDTH                          ' panel width/height unchanged
             h := HEIGHT
             _rotation := 2
-
         270:
             w := HEIGHT                         ' panel width/height swapped
             h := WIDTH
