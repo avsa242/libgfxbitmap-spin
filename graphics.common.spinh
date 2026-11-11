@@ -467,22 +467,73 @@ PUB circle(x0, y0, radius, color, filled=FALSE) | x, y, err, cdx, cdy, cht
 
 
 #ifndef GFX_DIRECT
-PUB copy(sx, sy, ex, ey, dx, dy) | x, y, tmp
-' Copy rectangular region at (sx, sy, ex, ey) to (dx, dy)
+PUB copy(sx, sy, ex, ey, dx, dy) | w, h, tmp, p_src, p_dest
+' Copy one rectangular region of the screen to another
+'   (sx, sy, ex, ey):   source region
+'   (dx, dy):           destination region
+# ifdef 1BPP
     repeat y from sy to ey
         repeat x from sx to ex
             tmp := point(x, y)
             plot((dx + x)-sx, (dy + y)-sy, tmp)
+# else
+    if ( ex < sx )                              ' swap start/end coords in the source if
+        sx, ex := ex, sx                        '   end < start
+    if ( ey < sy )                              '
+        sy, ey := ey, sy                        '
 
+    w := (ex-sx)+1                              ' width (pixels)
+    h := (ey-sy)+1                              ' height (pixels)
 
-PUB cut(sx, sy, ex, ey, dx, dy) | x, y, tmp
-' Copy rectangular region at (sx, sy, ex, ey) to (dx, dy)
-'   Subsequently clears original region (sx, sy, ex, ey) to background color
+    p_src := _ptr_drawbuffer + ( (sx * BYTESPERPX) + (sy * _bytesperln) )
+    p_dest := _ptr_drawbuffer + ( (dx * BYTESPERPX) + (dy * _bytesperln) )
+
+    repeat h
+        ifnot ( w & 3 )                         ' pick the fastest memop based on width
+            longmove(p_dest, p_src, (w * BYTESPERPX)/4)
+        elseifnot ( w & 1 )
+            wordmove(p_dest, p_src, (w * BYTESPERPX)/2)
+        else
+            bytemove(p_dest, p_src, w * BYTESPERPX)
+
+        p_src += _bytesperln
+        p_dest += _bytesperln
+# endif
+
+PUB cut(sx, sy, ex, ey, dx, dy) | w, h, tmp, p_src, p_dest
+' Copy one rectangular region of the screen to another and clear the source region
+'   (sx, sy, ex, ey):   source region
+'   (dx, dy):           destination region
+
+# ifdef 1BPP
     repeat y from sy to ey
         repeat x from sx to ex
             tmp := point(x, y)
-            plot((dx + x)-sx, (dy + y)-sy, tmp)             ' Copy to destination region
-            plot(x, y, _bgcolor)                            ' Cut the original region
+            plot((dx + x)-sx, (dy + y)-sy, tmp) ' copy to destination
+            plot(x, y, _bgcolor)                ' "cut" origin area to background color
+# else
+    if ( ex < sx )                              ' swap start/end coords in the source if
+        sx, ex := ex, sx                        '   end < start
+    if ( ey < sy )                              '
+        sy, ey := ey, sy                        '
+
+    p_src := _ptr_drawbuffer + ( (sx * BYTESPERPX) + (sy * _bytesperln) )
+    p_dest := _ptr_drawbuffer + ( (dx * BYTESPERPX) + (dy * _bytesperln) )
+    w := (ex-sx)+1                              ' width (pixels)
+    h := (ey-sy)+1                              ' height (pixels)
+
+    repeat h
+        ifnot ( w & 3 )                         ' pick the fastest memop based on width
+            longmove(p_dest, p_src, (w * BYTESPERPX)/4)
+        elseifnot ( w & 1 )
+            wordmove(p_dest, p_src, (w * BYTESPERPX)/2)
+        else
+            bytemove(p_dest, p_src, w * BYTESPERPX)
+
+        memfill(sx, sy++, _bgcolor, w)          ' "cut" origin area to background color
+        p_src += _bytesperln
+        p_dest += _bytesperln
+# endif
 #endif
 
 
