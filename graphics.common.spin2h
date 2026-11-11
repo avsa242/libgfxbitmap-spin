@@ -4,7 +4,7 @@
     Description:    Generic bitmap-oriented graphics rendering routines
     Author:         Jesse Burt
     Started:        May 19, 2019
-    Updated:        Aug 15, 2026
+    Updated:        Nov 11, 2026
     Copyright (c) 2026 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
@@ -918,6 +918,7 @@ PUB set_putchar(ptr)
     putchar := ptr
 
 
+#ifndef HAS_SET_ROTATION
 PUB set_rotation(r) | w, h
 ' Set display orientation (soft-rotation)                                                               
 '   r:  orientation from hardware default (degrees)
@@ -948,6 +949,7 @@ PUB set_rotation(r) | w, h
 
     set_dims(w, h)                              ' set/update drawable screen dimensions
     font_sz()                                   ' re-compute text cursor limits
+#endif
 
 
 PUB textcols = text_cols
